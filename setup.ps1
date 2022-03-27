@@ -282,7 +282,7 @@ function Setup-Partitions(){
     Write-Host "Done setting up partitions"
 }
 
-function Load-Ini($name = "setup.ini"){
+function Load-Ini($name = ".\settings\settings.ini"){
     if(Test-Path ".\$name"){
         Set-Variable -Name "IniContent" -Value (Get-IniContent ".\$name") -Scope Global
         Write-Host "Ini geladen"
