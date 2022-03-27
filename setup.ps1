@@ -7,12 +7,17 @@
 #ToDo - Taskbar import not working, possibly microsoft removed it
 
 function Setup-FileAssociations(){
+    Write-Host "Setting up file associations"
     foreach($extension in $IniContent["associations"].Keys){
+        Write-Debug "Creating association $($IniContent["associations"][$extension]) for file type $extension"
         Create-Association $extension  $IniContent["associations"][$extension]
+        Write-Debug "Done creating association $($IniContent["associations"][$extension]) for file type $extension"
     }
+    Write-Host "Done setting up file associations"
 }
 
 function Create-Symlinks($linkPath = "X:\Links"){
+    Write-Host "Creating Symlinks"
     foreach($name in $IniContent["links"].Keys){
         $path = $IniContent["links"][$name]
         Write-Host "Create-Symlink: $name | $($path):"
@@ -81,41 +86,54 @@ function Create-Symlinks($linkPath = "X:\Links"){
             Undo-Transaction
         }
     }
+    Write-Host "Dont creating Symlinks"
 }
 
 function Set-OptionalFeatures(){
+    Write-Host "Setting optional features"
     foreach($feature in $IniContent["optionalfeatures"].Keys){
+        Write-Debug "Feature $feature with targetstate $($IniContent["optionalfeatures"][$feature])"
         if($IniContent["optionalfeatures"][$feature] -eq "enable"){
             Get-WindowsOptionalFeature -FeatureName $feature -Online | Where-Object {$_.state -eq "Disabled"} | Enable-WindowsOptionalFeature -Online -NoRestart
         }else{
             Get-WindowsOptionalFeature -FeatureName $feature -Online | Where-Object {$_.state -eq "Enabled"} | Disable-WindowsOptionalFeature -Online -NoRestart
         }
+        Write-Debug "Done with feature $feature with new state $((Get-WindowsOptionalFeature -FeatureName $feature -Online).State)"
     }
+    Write-Host "Done setting optional features"
 }
 
 function Setup-Hosts(){
+    Write-Host "Setting up hosts file"
     if(Test-Path ".\hosts\from-file.txt"){
-        Add-Content -Path "$( $Env:WinDir )\system32\Drivers\etc\hosts" -Value (Get-Content -Path ".\hosts\from-file.txt")
+        Write-Debug "Adding hosts from file"
+        Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Get-Content -Path ".\hosts\from-file.txt")
+        Write-Debug "Done adding hosts from file"
     }
     else{
-        Write-Host "No host from-file file found"
+        Write-Debug "No host from-file file found"
     }
 
     if(Test-Path ".\hosts\from-url.txt"){
+        Write-Debug "Adding hosts from url"
         foreach($line in (Get-Content -Path ".\hosts\from-url.txt")){
-            Write-Host "Loading hosts from $line"
+            Write-Debug "Loading hosts from $line"
             Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Invoke-WebRequest -URI $line -UseBasicParsing).Content
-            Write-Host "Done loading hosts from $line"
+            Write-Debug "Done loading hosts from $line"
         }
+        Write-Debug "Done adding hosts from url"
     }
     else{
-        Write-Host "No host from-url file found"
+        Write-Debug "No host from-url file found"
     }
+    Write-Host "Done setting up hosts file"
 }
 
 function Import-GPO(){
     if(Test-Path ".\settings\gpedit.txt"){
+        Write-Host "Importing GPO from file"
         Import-GPO -BackupGPOName "Test-GPO" -Path ".\settings\gpedit.txt"
+        Write-Host "Done importing GPO from file"
     }
     else{
         Write-Host "No gpedit file found"
@@ -124,9 +142,13 @@ function Import-GPO(){
 
 function Setup-Quickaccess(){
     if(Test-Path ".\quickaccess\folders.txt"){
+        Write-Host "Setting up quickaccess"
         foreach ($folder in Get-Content ".\quickaccess\folders.txt") {
+            Write-Debug "Adding $folder to quickaccess"
             (New-Object -com shell.application).Namespace($folder).Self.InvokeVerb("pintohome")
+            Write-Debug "Done adding $folder to quickaccess"
         }
+        Write-Host "Done setting up quickaccess"
     }
     else{
         Write-Host "No quickaccess file found"
@@ -134,54 +156,77 @@ function Setup-Quickaccess(){
 }
 
 function Import-ScheduledTasks(){
+    Write-Host "Importing scheduled tasks"
     foreach ($task in Get-Childitem "./scheduledTasks/*.xml") {
+        Write-Debug "Adding task $task"
         Register-ScheduledTask -Xml "./ScheduledTasks/$task" -TaskName $task
+        Write-Debug "Done adding task $task"
     }
+    Write-Host "Done importing scheduled tasks"
 }
 
 function Install-Programs(){
+    Write-Host "Installing programs"
     foreach($install in Get-Childitem ".\install\*.exe"){
+        Write-Debug "Installing $install from file"
         & $install
+        Write-Debug "Done installing $install from file"
     }
 
     if(Test-Path ".\install\from-url.txt"){
+        Write-Debug "Installing from url"
         foreach ($url in Get-Content ".\install\from-url.txt"){
+            Write-Debug "Installing $url from url"
             $index++
             (New-Object System.Net.WebClient).DownloadFile($url, "$( $env:TEMP )/$index.exe")
             Start-Process "$( $env:TEMP )/$index.exe" | Out-Null
+            Write-Debug "Done installing $url from url"
         }
+        Write-Debug "Done installing from url"
     }
     else{
         Write-Host "No install from-url file found"
     }
 
     if(Test-Path ".\install\from-chocolatey.txt") {
+        Write-Debug "Installing from chocolatey"
         Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
         choco feature enable -n allowGlobalConfirmation
         foreach ($i in (Get-Content ".\install\from-chocolatey.txt" | Where-Object { $_ -notlike ";*" })) {
+            Write-Debug "Installing $i from chocolatey"
             choco install $i --limit-output --ignore-checksum
             choco pin add -n="$i"
+            Write-Debug "Done installing $i from chocolatey"
         }
+        Write-Debug "Done installing from chocolatey"
     }
     else{
         Write-Host "No install from-chocolatey file found"
     }
 
-    if(Test-Path ".\install\from-winge.txt"){
+    if(Test-Path ".\install\from-winget.txt"){
+        Write-Debug "Installing from winget"
         foreach ($i in (Get-Content ".\install\from-winget.txt" | Where-Object { $_ -notlike ";*" })){
+            Write-Debug "Installing $i from winget"
             winget install $i
+            Write-Debug "Done installing $i from winget"
         }
+        Write-Debug "Done installing from winget"
     }
     else{
-        Write-Host "No install from-winge file found"
+        Write-Host "No install from-winget file found"
     }
 }
 
 function Remove-Bloatware(){
     if(Test-Path ".\install\remove-bloatware.txt"){
+        Write-Host "Removing bloatware"
         foreach($line in (Get-Content ".\install\remove-bloatware.txt")){
+            Write-Debug "Removing $line"
             Get-AppxPackage $line | Remove-AppxPackage
+            Write-Debug "Done removing $line"
         }
+        Write-Host "Done removing bloatware"
     }
     else{
         Write-Host "No remove-bloatware file found"
@@ -238,29 +283,41 @@ function Load-Ini($name = "setup.ini"){
 }
 
 function Setup-Powershell(){
+    Write-Host "Setting up Powershell"
     Update-Help
     if(Test-Path ".\install\powershell-packageprovider.txt"){
+        Write-Debug "Installing packageproviders"
         foreach($pp in (Get-Content ".\install\powershell-packageprovider.txt")){
+            Write-Debug "Installing packageprovider $pp"
             Install-PackageProvider -Name $pp -Force -Confirm:$false
+            Write-Debug "Done installing packageprovider $pp"
         }
+        Write-Debug "Done installing packageproviders"
     }
     else{
         Write-Host "No powershell-packageprovider file found"
     }
 
     if(Test-Path ".\install\powershell-module.txt"){
-        foreach($pp in (Get-Content ".\install\powershell-module.txt")){
-            Install-Module -Name $pp -Force -Confirm:$false
+        Write-Debug "Installing modules"
+        foreach($module in (Get-Content ".\install\powershell-module.txt")){
+            Write-Debug "Installing module $module"
+            Install-Module -Name $module -Force -Confirm:$false
+            Write-Debug "Done installing module $module"
         }
+        Write-Debug "Done installing modules"
     }
     else{
         Write-Host "No powershell-module file found"
     }
+    Write-Host "Done setting up Powershell"
 }
 
 function Setup-Taskbar(){
     if(Test-Path ".\settings\taskbar.xml"){
+        Write-Host "Setting up taskbar"
         Import-StartLayout -Layoutpath ".\settings\taskbar.xml" -Mountpath C:\
+        Write-Host "Done setting up taskbar"
     }
     else{
         Write-Host "No Taskbar file found"
