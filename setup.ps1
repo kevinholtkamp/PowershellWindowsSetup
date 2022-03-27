@@ -16,6 +16,16 @@ function Setup-FileAssociations(){
     Write-Host "Done setting up file associations"
 }
 
+function Load-Registry(){
+    if(Test-Path ".\settings\registry.reg"){
+        Write-Host "Importing registry file"
+        reg import .\settings\registry.reg
+        Write-Host "Done importing registry file"
+    }else{
+        Write-Host "Cannot find registry file"
+    }
+}
+
 function Create-Symlinks($linkPath = "X:\Links"){
     Write-Host "Creating Symlinks"
     foreach($name in $IniContent["links"].Keys){
