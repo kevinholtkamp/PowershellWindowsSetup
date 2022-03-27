@@ -189,7 +189,42 @@ function Remove-Bloatware(){
 }
 
 function Setup-Partitions(){
-    #ToDo automate Partition setup
+    Write-Host "Setting up partitions"
+    $partitions = Get-IniContent ".\settings\partitions.ini"
+    #Find all driveletters that are wanted
+    $unusable = @()
+    foreach($drive in $partitions.Keys) {
+        foreach ($partition in $partitions["$drive"].Keys) {
+            $unusable += $partitions["$drive"]["$partition"]
+        }
+    }
+    Write-Debug "Found all wanted driveletters: $unusable"
+    #Find all drive letters that are currently in use
+    $unusable += (Get-PSDrive).Root -match "^[A-Z]:\\"
+    Write-Debug "Found all wanted and currently used driveletters: $unusable"
+    #Find all free usable drive letters (Not currently used and not wanted)
+    65..90|foreach-object{if(-not $unusable.Contains("$([char]$_):\")){$usable+=[char]$_}}
+    $usableIndex = 0
+    Write-Debug "Found all freely usable drive letters (Not used  & not wanted): $usable"
+    #Temporarily assign all partitions to one of those letters
+    foreach($drive in $partitions.Keys) {
+        foreach ($partition in $partitions["$drive"].Keys) {
+            Write-Debug "Assigning partition $partition of drive $drive to temporary letter $($usable[$usableIndex])"
+            Get-Disk | Where-Object SerialNumber -EQ "$drive" | Get-Partition | Where-Object PartitionNumber -EQ $partition | Set-Partition -NewDriveLetter $usable[$usableIndex]
+            $usableIndex++
+            Write-Debug "Done assigning partition $partition of drive $drive to temporary letter $($usable[$usableIndex])"
+        }
+    }
+    Write-Debug "All partitions set to temporary driveletters"
+    #Assign all partitions to their wanted letter
+    foreach($drive in $partitions.Keys) {
+        foreach ($partition in $partitions["$drive"].Keys) {
+            Write-Debug "Assigning partition $partition of drive $drive to letter $($partitions["$drive"]["$partition"])"
+            Get-Disk | Where-Object SerialNumber -EQ "$drive" | Get-Partition | Where-Object PartitionNumber -EQ $partition | Set-Partition -NewDriveLetter $partitions["$drive"]["$partition"]
+            Write-Debug "Done assigning partition $partition of drive $drive to letter $($partitions["$drive"]["$partition"])"
+        }
+    }
+    Write-Host "Done setting up partitions"
 }
 
 function Load-Ini($name = "setup.ini"){
