@@ -5,6 +5,8 @@
 # - Move ini file to be a parameter for functions which use it, call the function in Start-Setup (Then things like partitions can use their own ini file)
 # - More Write-Host messages and change some into Write-Debug
 # - Do file associations
+# - Example GPO importfile
+# - Taskbar import not working, possibly microsoft removed it
 
 
 function Create-Symlinks($linkPath = "X:\Links"){
@@ -227,7 +229,7 @@ function Start-Setup(){
     Read-Host "Windows update service stopped. Press enter to continue"
 
 
-    #ToDo check if there is an advantage of changing the order?
+    #ToDo check if there is an advantage of changing the order
     Load-Ini
     Setup-Powershell
     Setup-Partitions
