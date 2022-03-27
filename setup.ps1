@@ -228,7 +228,7 @@ function Start-Setup(){
     Read-Host "Windows update service stopped. Press enter to continue"
 
 
-    #ToDo check if there is an advantage of changing the order
+    #ToDo check if there is an advantage of changing the order?
     Load-Ini
     Setup-Powershell
     Setup-Partitions
