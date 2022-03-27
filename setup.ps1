@@ -338,6 +338,9 @@ function Start-Setup(){
     Read-Host "Windows update service stopped. Press enter to continue"
 
 
+    if(Test-Path ".\prepend_custom.ps1") {
+        .\prepend_custom.ps1
+    }
     #ToDo check if there is an advantage of changing the order?
     Load-Ini
     Setup-Powershell
@@ -353,6 +356,9 @@ function Start-Setup(){
     Setup-Quickaccess
     Remove-Bloatware
     Install-Programs
+    if(Test-Path ".\append_custom.ps1") {
+        .\append_custom.ps1
+    }
 
 
     Write-Host "Creating Windows Checkpoint"
