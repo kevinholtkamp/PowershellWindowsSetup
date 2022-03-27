@@ -3,10 +3,14 @@
 
 #ToDo - Move ini file to be a parameter for functions which use it, call the function in Start-Setup (Then things like partitions can use their own ini file)
 #ToDo - More Write-Host messages and change some into Write-Debug
-#ToDo - Do file associations
 #ToDo - Example GPO importfile
 #ToDo - Taskbar import not working, possibly microsoft removed it
 
+function Setup-FileAssociations(){
+    foreach($extension in $IniContent["associations"].Keys){
+        Create-Association $extension  $IniContent["associations"][$extension]
+    }
+}
 
 function Create-Symlinks($linkPath = "X:\Links"){
     foreach($name in $IniContent["links"].Keys){
@@ -251,6 +255,7 @@ function Start-Setup(){
     Import-ScheduledTasks
     Import-GPO
     Create-Symlinks
+    Setup-FileAssociations
     Setup-Hosts
     Setup-Taskbar
     Setup-Quickaccess

@@ -21,6 +21,7 @@ function Get-IniContent ($filePath)
     }
     return $ini
 }
+#Source: https://stackoverflow.com/a/59048942
 Function Create-Association($ext, $exe) {
     $name = cmd /c "assoc $ext 2>NUL"
     if ($name) { # Association already exists: override it
