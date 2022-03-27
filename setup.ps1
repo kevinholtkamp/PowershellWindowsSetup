@@ -11,56 +11,70 @@
 function Create-Symlinks($linkPath = "X:\Links"){
     foreach($name in $IniContent["links"].Keys){
         $path = $IniContent["links"][$name]
-        Write-Host "Start-Links: $name | $($path):"
-        if(Test-Path $path){
-            Write-Host "Local folder exists"
-            if(!(Test-Symlink "$path")){
-                Write-Host "Local folder is no Symlink yet"
-                if(!(Test-Path "$linkPath\$name")){
-                    Write-Host "Does not exist in LinkPath"
-                    New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory"
-                    Write-Host "New folder created in LinkPath"
-                }else{
-                    Write-Host "Exists in LinkPath"
+        Write-Host "Create-Symlink: $name | $($path):"
+        Start-Transaction -RollbackPreference Never
+        try {
+            if (Test-Path $path) {
+                Write-Debug "Local folder exists"
+                if (!(Test-Symlink "$path")) {
+                    Write-Debug "Local folder is no Symlink yet"
+                    if (!(Test-Path "$linkPath\$name")) {
+                        Write-Debug "Does not exist in LinkPath"
+                        New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory" -UseTransaction
+                        Write-Debug "New folder created in LinkPath"
+                    }
+                    else {
+                        Write-Debug "Exists in LinkPath"
+                    }
+                    Copy-Item -Path "$path\*" -Destination "$linkPath\$name\" -Recurse -UseTransaction
+                    Write-Debug "Copied to LinkPath sucessfully"
+                    Remove-ItemSafely -Path $path -Recurse -Force -UseTransaction
+                    Write-Debug "Removed old folder"
+                    New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name" -UseTransaction
+                    Write-Debug "SymLink created sucessfully"
                 }
-                Copy-Item -Path "$path\*" -Destination "$linkPath\$name\" -Recurse
-                Write-Host "Copied to LinkPath sucessfully"
-                Remove-ItemSafely -Path $path -Recurse -Force
-                Write-Host "Removed old folder"
-                New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name"
-                Write-Host "SymLink created sucessfully"
-            }else{
-                Write-Host "Local folder is a SymLink already"
-                if(!(Test-Path "$linkPath\$name")){
-                    Write-Host "But does not exist in LinkPath"
-                    New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory"
-                    Write-Host "New folder created in LinkPath"
-                }else{
-                    Write-Host "Exists in LinkPath"
-                }
-                if((Get-Item $path | Select-Object -ExpandProperty Target) -ne "$linkPath\$name"){
-                    Write-Host "Symlink exists, but has a wrong target"
-                    Copy-Item -Path "$path\*" -Destination "$linkPath\$name\" -Recurse
-                    Write-Host "Everything copied from false target"
-                    Remove-ItemSafely -Path $path
-                    Write-Host "Old symlink removed"
-                    New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name"
-                    Write-Host "New Symlink created"
-                }else{
-                    Write-Host "Symlink exists and has the correct target"
+                else {
+                    Write-Debug "Local folder is a SymLink already"
+                    if (!(Test-Path "$linkPath\$name")) {
+                        Write-Debug "But does not exist in LinkPath"
+                        New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory" -UseTransaction
+                        Write-Debug "New folder created in LinkPath"
+                    }
+                    else {
+                        Write-Debug "Exists in LinkPath"
+                    }
+                    if ((Get-Item $path | Select-Object -ExpandProperty Target) -ne "$linkPath\$name") {
+                        Write-Debug "Symlink exists, but has a wrong target"
+                        Copy-Item -Path "$path\*" -Destination "$linkPath\$name\" -Recurse -UseTransaction
+                        Write-Debug "Everything copied from false target"
+                        Remove-ItemSafely -Path $path -UseTransaction
+                        Write-Debug "Old symlink removed"
+                        New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name" -UseTransaction
+                        Write-Debug "New Symlink created"
+                    }
+                    else {
+                        Write-Debug "Symlink exists and has the correct target, no changes need to be made"
+                    }
                 }
             }
-        }else{
-            Write-Host "Local folder does not exist"
-            if(!(Test-Path "$linkPath\$name")){
-                Write-Host "Does not exist in LinkPath"
-                New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory"
-                Write-Host "New folder created in LinkPath"
-            }else{
-                Write-Host "Exists in LinkPath"
+            else {
+                Write-Debug "Local folder does not exist"
+                if (!(Test-Path "$linkPath\$name")) {
+                    Write-Debug "Does not exist in LinkPath"
+                    New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory" -UseTransaction
+                    Write-Debug "New folder created in LinkPath"
+                }
+                else {
+                    Write-Debug "Exists in LinkPath"
+                }
+                New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name" -Force -UseTransaction
+                Write-Debug "Symlink created successfully"
             }
-            New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name" -Force
-            Write-Host "Symlink created successfully"
+            Write-Host "No errors occured, applying changes"
+            Complete-Transaction
+        }catch{
+            Write-Host "An error occured, rolling back changes"
+            Undo-Transaction
         }
     }
 }
