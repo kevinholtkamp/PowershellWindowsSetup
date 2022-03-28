@@ -6,7 +6,6 @@
 #ToDo - Example GPO importfile
 #ToDo - Taskbar import not working, possibly microsoft removed it
 #ToDo - Split settings.ini
-#ToDo - user groups to have multiple settings in one folder (i.e. default-install/ and admin/install and pass parameter to script for chosing one) -> this would require to add $userGroup to all file accesses and moving all files to subfolders | alternatively, instead of default-install/ use default/install
 
 function Setup-FileAssociations(){
     Write-Host "Setting up file associations"
@@ -19,9 +18,9 @@ function Setup-FileAssociations(){
 }
 
 function Load-Registry($Group = "default"){
-    if(Test-Path ".\$Group-settings\registry.reg"){
+    if(Test-Path ".\$Group\settings\registry.reg"){
         Write-Host "Importing registry file"
-        reg import ".\$Group-settings\registry.reg"
+        reg import ".\$Group\settings\registry.reg"
         Write-Host "Done importing registry file"
     }else{
         Write-Host "Cannot find registry file"
@@ -117,18 +116,18 @@ function Set-OptionalFeatures(){
 
 function Setup-Hosts($Group = "default"){
     Write-Host "Setting up hosts file"
-    if(Test-Path ".\$Group-hosts\from-file.txt"){
+    if(Test-Path ".\$Group\hosts\from-file.txt"){
         Write-Debug "Adding hosts from file"
-        Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Get-Content -Path ".\$Group-hosts\from-file.txt")
+        Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Get-Content -Path ".\$Group\hosts\from-file.txt")
         Write-Debug "Done adding hosts from file"
     }
     else{
         Write-Debug "No host from-file file found"
     }
 
-    if(Test-Path ".\$Group-hosts\from-url.txt"){
+    if(Test-Path ".\$Group\hosts\from-url.txt"){
         Write-Debug "Adding hosts from url"
-        foreach($line in (Get-Content -Path ".\$Group-hosts\from-url.txt")){
+        foreach($line in (Get-Content -Path ".\$Group\hosts\from-url.txt")){
             Write-Debug "Loading hosts from $line"
             Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Invoke-WebRequest -URI $line -UseBasicParsing).Content
             Write-Debug "Done loading hosts from $line"
@@ -142,9 +141,9 @@ function Setup-Hosts($Group = "default"){
 }
 
 function Import-GPO($Group = "default"){
-    if(Test-Path ".\$Group-settings\gpedit.txt"){
+    if(Test-Path ".\$Group\settings\gpedit.txt"){
         Write-Host "Importing GPO from file"
-        Import-GPO -BackupGPOName "Test-GPO" -Path ".\$Group-settings\gpedit.txt"
+        Import-GPO -BackupGPOName "Test-GPO" -Path ".\$Group\settings\gpedit.txt"
         Write-Host "Done importing GPO from file"
     }
     else{
@@ -153,9 +152,9 @@ function Import-GPO($Group = "default"){
 }
 
 function Setup-Quickaccess($Group = "default"){
-    if(Test-Path ".\$Group-quickaccess\folders.txt"){
+    if(Test-Path ".\$Group\quickaccess\folders.txt"){
         Write-Host "Setting up quickaccess"
-        foreach ($folder in Get-Content ".\$Group-quickaccess\folders.txt") {
+        foreach ($folder in Get-Content ".\$Group\quickaccess\folders.txt") {
             Write-Debug "Adding $folder to quickaccess"
             (New-Object -com shell.application).Namespace($folder).Self.InvokeVerb("pintohome")
             Write-Debug "Done adding $folder to quickaccess"
@@ -169,9 +168,9 @@ function Setup-Quickaccess($Group = "default"){
 
 function Import-ScheduledTasks($Group = "default"){
     Write-Host "Importing scheduled tasks"
-    foreach ($task in Get-Childitem "./$Group-scheduledTasks/*.xml") {
+    foreach ($task in Get-Childitem ".\$Group\scheduledTasks\*.xml") {
         Write-Debug "Adding task $task"
-        Register-ScheduledTask -Xml "./$Group-ScheduledTasks/$task" -TaskName $task
+        Register-ScheduledTask -Xml ".\$Group\ScheduledTasks\$task" -TaskName $task
         Write-Debug "Done adding task $task"
     }
     Write-Host "Done importing scheduled tasks"
@@ -179,19 +178,19 @@ function Import-ScheduledTasks($Group = "default"){
 
 function Install-Programs($Group = "default"){
     Write-Host "Installing programs"
-    foreach($install in Get-Childitem ".\$Group-install\*.exe"){
+    foreach($install in Get-Childitem ".\$Group\install\*.exe"){
         Write-Debug "Installing $install from file"
         & $install
         Write-Debug "Done installing $install from file"
     }
 
-    if(Test-Path ".\$Group-install\from-url.txt"){
+    if(Test-Path ".\$Group\install\from-url.txt"){
         Write-Debug "Installing from url"
-        foreach ($url in Get-Content ".\$Group-install\from-url.txt"){
+        foreach ($url in Get-Content ".\$Group\install\from-url.txt"){
             Write-Debug "Installing $url from url"
             $index++
-            (New-Object System.Net.WebClient).DownloadFile($url, "$( $env:TEMP )/$index.exe")
-            Start-Process "$( $env:TEMP )/$index.exe" | Out-Null
+            (New-Object System.Net.WebClient).DownloadFile($url, "$($env:TEMP)\$index.exe")
+            Start-Process "$($env:TEMP)\$index.exe" | Out-Null
             Write-Debug "Done installing $url from url"
         }
         Write-Debug "Done installing from url"
@@ -200,15 +199,15 @@ function Install-Programs($Group = "default"){
         Write-Host "No install from-url file found"
     }
 
-    if(Test-Path ".\$Group-install\from-chocolatey.txt") {
+    if(Test-Path ".\$Group\install\from-chocolatey.txt") {
         Write-Debug "Installing chocolatey"
         Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
         choco feature enable -n allowGlobalConfirmation
         Write-Debug "Done installing chocolatey"
-        if(Test-Path ".\$Group-install\chocolatey-repository.ini"){
+        if(Test-Path ".\$Group\install\chocolatey-repository.ini"){
             Write-Debug "Removing default repository and loading new repositories from file"
             choco source remove -n=chocolatey
-            $sources = Get-IniContent ".\$Group-install\chocolatey-repository.ini"
+            $sources = Get-IniContent ".\$Group\install\chocolatey-repository.ini"
             foreach($source in $sources.Keys) {
                 $splatter = $sources[$source]
                 choco source add --name $source @splatter
@@ -216,7 +215,7 @@ function Install-Programs($Group = "default"){
             Write-Debug "Done removing default repository and loading new repositories from file"
         }
         Write-Debug "Installing from chocolatey"
-        foreach ($i in (Get-Content ".\$Group-install\from-chocolatey.txt" | Where-Object { $_ -notlike ";*" })) {
+        foreach ($i in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object { $_ -notlike ";*" })) {
             Write-Debug "Installing $i from chocolatey"
             choco install $i --limit-output --ignore-checksum
             choco pin add -n="$i"
@@ -228,9 +227,9 @@ function Install-Programs($Group = "default"){
         Write-Host "No install from-chocolatey file found"
     }
 
-    if(Test-Path ".\$Group-install\from-winget.txt"){
+    if(Test-Path ".\$Group\install\from-winget.txt"){
         Write-Debug "Installing from winget"
-        foreach ($i in (Get-Content ".\$Group-install\from-winget.txt" | Where-Object { $_ -notlike ";*" })){
+        foreach ($i in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object { $_ -notlike ";*" })){
             Write-Debug "Installing $i from winget"
             winget install $i
             Write-Debug "Done installing $i from winget"
@@ -243,9 +242,9 @@ function Install-Programs($Group = "default"){
 }
 
 function Remove-Bloatware($Group = "default"){
-    if(Test-Path ".\$Group-install\remove-bloatware.txt"){
+    if(Test-Path ".\$Group\install\remove-bloatware.txt"){
         Write-Host "Removing bloatware"
-        foreach($line in (Get-Content ".\$Group-install\remove-bloatware.txt")){
+        foreach($line in (Get-Content ".\$Group\install\remove-bloatware.txt")){
             Write-Debug "Removing $line"
             Get-AppxPackage $line | Remove-AppxPackage
             Write-Debug "Done removing $line"
@@ -259,7 +258,7 @@ function Remove-Bloatware($Group = "default"){
 
 function Setup-Partitions($Group = "default"){
     Write-Host "Setting up partitions"
-    $partitions = Get-IniContent ".\$Group-settings\partitions.ini"
+    $partitions = Get-IniContent ".\$Group\settings\partitions.ini"
     #Find all driveletters that are wanted
     $unusable = @()
     foreach($drive in $partitions.Keys) {
@@ -309,9 +308,9 @@ function Load-Ini($Name = ".\default-settings\settings.ini"){
 function Setup-Powershell($Group = "default"){
     Write-Host "Setting up Powershell"
     Update-Help
-    if(Test-Path ".\$Group-install\powershell-packageprovider.txt"){
+    if(Test-Path ".\$Group\install\powershell-packageprovider.txt"){
         Write-Debug "Installing packageproviders"
-        foreach($pp in (Get-Content ".\$Group-install\powershell-packageprovider.txt")){
+        foreach($pp in (Get-Content ".\$Group\install\powershell-packageprovider.txt")){
             Write-Debug "Installing packageprovider $pp"
             Install-PackageProvider -Name $pp -Force -Confirm:$false
             Write-Debug "Done installing packageprovider $pp"
@@ -322,9 +321,9 @@ function Setup-Powershell($Group = "default"){
         Write-Host "No powershell-packageprovider file found"
     }
 
-    if(Test-Path ".\$Group-install\powershell-module.txt"){
+    if(Test-Path ".\$Group\install\powershell-module.txt"){
         Write-Debug "Installing modules"
-        foreach($module in (Get-Content ".\$Group-install\powershell-module.txt")){
+        foreach($module in (Get-Content ".\$Group\install\powershell-module.txt")){
             Write-Debug "Installing module $module"
             Install-Module -Name $module -Force -Confirm:$false
             Write-Debug "Done installing module $module"
@@ -338,9 +337,9 @@ function Setup-Powershell($Group = "default"){
 }
 
 function Setup-Taskbar($Group = "default"){
-    if(Test-Path ".\$Group-settings\taskbar.xml"){
+    if(Test-Path ".\$Group\settings\taskbar.xml"){
         Write-Host "Setting up taskbar"
-        Import-StartLayout -Layoutpath ".\$Group-settings\taskbar.xml" -Mountpath C:\
+        Import-StartLayout -Layoutpath ".\$Group\settings\taskbar.xml" -Mountpath C:\
         Write-Host "Done setting up taskbar"
     }
     else{
@@ -363,10 +362,10 @@ function Start-Setup($Group = "default"){
 
 
     if(Test-Path ".\prepend_custom.ps1") {
-        .\prepend_custom.ps1
+        & ".\$Group\scripts\prepend_custom.ps1"
     }
     #ToDo check if there is an advantage of changing the order?
-    Load-Ini -Name ".\$Group-settings\settings.ini"
+    Load-Ini -Name ".\$Group\settings\settings.ini"
     Setup-Powershell -Group $Group
     Setup-Partitions -Group $Group
     Load-Registry -Group $Group
@@ -381,7 +380,7 @@ function Start-Setup($Group = "default"){
     Remove-Bloatware -Group $Group
     Install-Programs -Group $Group
     if(Test-Path ".\append_custom.ps1") {
-        .\append_custom.ps1
+        & ".\$Group\scripts\append_custom.ps1"
     }
 
 
