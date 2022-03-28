@@ -199,9 +199,21 @@ function Install-Programs(){
     }
 
     if(Test-Path ".\install\from-chocolatey.txt") {
-        Write-Debug "Installing from chocolatey"
+        Write-Debug "Installing chocolatey"
         Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
         choco feature enable -n allowGlobalConfirmation
+        Write-Debug "Done installing chocolatey"
+        if(Test-Path ".\install\chocolatey-repository.ini"){
+            Write-Debug "Removing default repository and loading new repositories from file"
+            choco source remove -n=chocolatey
+            $sources = Get-IniContent ".\install\chocolatey-repository.ini"
+            foreach($source in $sources.Keys) {
+                $splatter = $sources[$source]
+                choco source add --name $source @splatter
+            }
+            Write-Debug "Done removing default repository and loading new repositories from file"
+        }
+        Write-Debug "Installing from chocolatey"
         foreach ($i in (Get-Content ".\install\from-chocolatey.txt" | Where-Object { $_ -notlike ";*" })) {
             Write-Debug "Installing $i from chocolatey"
             choco install $i --limit-output --ignore-checksum
