@@ -5,6 +5,8 @@
 #ToDo - More Write-Host messages and change some into Write-Debug
 #ToDo - Example GPO importfile
 #ToDo - Taskbar import not working, possibly microsoft removed it
+#ToDo - Split settings.ini
+#ToDo - user groups to have multiple settings in one folder (i.e. default-install/ and admin/install and pass parameter to script for chosing one) -> this would require to add $userGroup to all file accesses and moving all files to subfolders | alternatively, instead of default-install/ use default/install
 
 function Setup-FileAssociations(){
     Write-Host "Setting up file associations"
