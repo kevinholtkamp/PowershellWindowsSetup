@@ -32,3 +32,42 @@ Function Create-Association($ext, $exe) {
     }
     cmd /c "ftype $name=`"$exe`" `"%1`""
 }
+
+function New-ItemTransaction([string]$Path, [string]$Name, [string]$ItemType){
+    $origWhatIfPreference = $WhatIfPreference.IsPresent
+    $WhatIfPreference = $false
+    New-Item -Path $Path -Name $Name -ItemType $ItemType -ErrorAction stop -WhatIf | Out-Null
+    $WhatIfPreference = $origWhatIfPreference
+
+    $ScriptBlock = {New-Item -Path $Path -Name $Name -ItemType $ItemType -ErrorAction stop}
+    $LocalTransactionArray = Get-Variable -Name "TransactionArray" -Scope Global -ValueOnly
+    $LocalTransactionArray += $ScriptBlock
+    Set-Variable -Name "TransactionArray" -Scope Global -Value $LocalTransactionArray
+}
+function Copy-ItemTransaction([string]$Path, [string]$Destination, [switch]$Recurse){
+    Copy-Item -Path $Path -Destination $Destination -Recurse:$Recurse -ErrorAction stop -WhatIf | Out-Null
+    $ScriptBlock = {Copy-Item -Path $Path -Destination $Destination -Recurse:$Recurse -ErrorAction stop}
+    $LocalTransactionArray = Get-Variable -Name "TransactionArray" -Scope Global -ValueOnly
+    $LocalTransactionArray += $ScriptBlock
+    Set-Variable -Name "TransactionArray" -Scope Global -Value $LocalTransactionArray
+}
+function Remove-ItemSafelyTransaction([string]$Path, [switch]$Recurse, [switch]$Force){
+    Remove-ItemSafely -Path $Path -Recurse:$Recurse -Force:$Force -ErrorAction stop -WhatIf | Out-Null
+    $ScriptBlock = {Remove-ItemSafely -Path $Path -Recurse:$Recurse -Force:$Force -ErrorAction stop}
+    $LocalTransactionArray = Get-Variable -Name "TransactionArray" -Scope Global -ValueOnly
+    $LocalTransactionArray += $ScriptBlock
+    Set-Variable -Name "TransactionArray" -Scope Global -Value $LocalTransactionArray
+}
+function Start-CustomTransaction(){
+    Set-Variable -Name "TransactionArray" -Scope Global -Value @()
+}
+function Complete-CustomTransaction(){
+    $LocalTransactionArray = Get-Variable -Name "TransactionArray" -Scope Global -ValueOnly
+    foreach($entry in $LocalTransactionArray){
+        & $entry
+    }
+    Set-Variable -Name "TransactionArray" -Scope Global -Value @()
+}
+function Undo-CustomTransaction(){
+    Set-Variable -Name "TransactionArray" -Scope Global -Value @()
+}
