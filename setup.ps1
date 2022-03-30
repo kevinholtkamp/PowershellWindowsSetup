@@ -361,45 +361,50 @@ function Setup-Taskbar($Group = "default"){
 function Start-Setup($Group = "default"){
     Start-Transcript "$home\Desktop\$(Get-Date -Format "yyyy_MM_dd")_setup.transcript"
 
-    Write-Host "Creating Windows Checkpoint"
-    Checkpoint-Computer -Description "Before Start-Setup at $(Get-Date)"
-    Read-Host "Checkpoint created. Press enter to continue"
+    if(Test-Path ".\$Group\") {
+        Write-Host "Creating Windows Checkpoint"
+        Checkpoint-Computer -Description "Before Start-Setup at $( Get-Date )"
+        Read-Host "Checkpoint created. Press enter to continue"
 
-    Write-Host "Stopping Windows update service"
-    net stop wuauserv | Write-Host
-    Read-Host "Windows update service stopped. Press enter to continue"
+        Write-Host "Stopping Windows update service"
+        net stop wuauserv | Write-Host
+        Read-Host "Windows update service stopped. Press enter to continue"
 
 
-    if(Test-Path ".\prepend_custom.ps1") {
-        & ".\$Group\scripts\prepend_custom.ps1"
+        if(Test-Path ".\prepend_custom.ps1"){
+            & ".\$Group\scripts\prepend_custom.ps1"
+        }
+        #ToDo check if there is an advantage of changing the order?
+        Load-Ini -Name ".\$Group\settings\settings.ini"
+        Setup-Powershell -Group $Group
+        Setup-Partitions -Group $Group
+        Load-Registry -Group $Group
+        Set-OptionalFeatures
+        Import-ScheduledTasks -Group $Group
+        Import-GPO -Group $Group
+        Create-Symlinks
+        Setup-FileAssociations
+        Setup-Hosts -Group $Group
+        Setup-Taskbar -Group $Group
+        Setup-Quickaccess -Group $Group
+        Remove-Bloatware -Group $Group
+        Install-Programs -Group $Group
+        if(Test-Path ".\append_custom.ps1"){
+            & ".\$Group\scripts\append_custom.ps1"
+        }
+
+
+        Write-Host "Creating Windows Checkpoint"
+        Checkpoint-Computer -Description "After Start-Setup at $( Get-Date )"
+        Read-Host "Checkpoint created. Press enter to continue"
+
+        Write-Host "Starting Windows update service"
+        net start wuauserv | Write-Host
+        Write-Host "Windows update service started. Press enter to continue"
     }
-    #ToDo check if there is an advantage of changing the order?
-    Load-Ini -Name ".\$Group\settings\settings.ini"
-    Setup-Powershell -Group $Group
-    Setup-Partitions -Group $Group
-    Load-Registry -Group $Group
-    Set-OptionalFeatures
-    Import-ScheduledTasks -Group $Group
-    Import-GPO -Group $Group
-    Create-Symlinks
-    Setup-FileAssociations
-    Setup-Hosts -Group $Group
-    Setup-Taskbar -Group $Group
-    Setup-Quickaccess -Group $Group
-    Remove-Bloatware -Group $Group
-    Install-Programs -Group $Group
-    if(Test-Path ".\append_custom.ps1") {
-        & ".\$Group\scripts\append_custom.ps1"
+    else{
+        Write-Host "No group $Group found, terminating execution."
     }
-
-
-    Write-Host "Creating Windows Checkpoint"
-    Checkpoint-Computer -Description "After Start-Setup at $(Get-Date)"
-    Read-Host "Checkpoint created. Press enter to continue"
-
-    Write-Host "Starting Windows update service"
-    net start wuauserv | Write-Host
-    Write-Host "Windows update service started. Press enter to continue"
 
     Stop-Transcript
 }
