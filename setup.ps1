@@ -1,11 +1,6 @@
 . .\functions.ps1
 
 
-#ToDo - More Write-Host messages and change some into Write-Debug
-#ToDo - Example GPO importfile
-#ToDo - Taskbar import not working, possibly microsoft removed it
-#ToDo - Split settings.ini
-
 function Setup-FileAssociations($Associations){
     Write-Host "Setting up file associations"
     foreach($extension in $Associations.Keys){
@@ -363,7 +358,6 @@ function Start-Setup($Group = "default"){
         if(Test-Path ".\prepend_custom.ps1") {
             & ".\$Group\scripts\prepend_custom.ps1"
         }
-        #ToDo check if there is an advantage of changing the order?
         $IniContent = Get-IniContent -filePath ".\$Group\settings\settings.ini"
 
         Setup-Powershell -Group $Group
