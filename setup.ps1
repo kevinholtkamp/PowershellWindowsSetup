@@ -1,18 +1,17 @@
 . .\functions.ps1
 
 
-#ToDo - Move ini file to be a parameter for functions which use it, call the function in Start-Setup (Then things like partitions can use their own ini file)
 #ToDo - More Write-Host messages and change some into Write-Debug
 #ToDo - Example GPO importfile
 #ToDo - Taskbar import not working, possibly microsoft removed it
 #ToDo - Split settings.ini
 
-function Setup-FileAssociations(){
+function Setup-FileAssociations($Associations){
     Write-Host "Setting up file associations"
-    foreach($extension in $IniContent["associations"].Keys){
-        Write-Debug "Creating association $($IniContent["associations"][$extension]) for file type $extension"
-        Create-Association $extension  $IniContent["associations"][$extension]
-        Write-Debug "Done creating association $($IniContent["associations"][$extension]) for file type $extension"
+    foreach($extension in $Associations.Keys){
+        Write-Debug "Creating association $($Associations[$extension]) for file type $extension"
+        Create-Association $extension  $Associations[$extension]
+        Write-Debug "Done creating association $($Associations[$extension]) for file type $extension"
     }
     Write-Host "Done setting up file associations"
 }
@@ -27,10 +26,10 @@ function Load-Registry($Group = "default"){
     }
 }
 
-function Create-Symlinks($linkPath = "X:\Links"){
+function Create-Symlinks($linkPath = "X:\Links", $Links){
     Write-Host "Creating Symlinks"
-    foreach($name in $IniContent["links"].Keys){
-        $path = $IniContent["links"][$name]
+    foreach($name in $Links.Keys){
+        $path = $Links[$name]
         Write-Host "Create-Symlink: $name | $($path):"
         Start-Transaction -RollbackPreference Never
         try {
@@ -100,11 +99,11 @@ function Create-Symlinks($linkPath = "X:\Links"){
     Write-Host "Dont creating Symlinks"
 }
 
-function Set-OptionalFeatures(){
+function Set-OptionalFeatures($Features){
     Write-Host "Setting optional features"
-    foreach($feature in $IniContent["optionalfeatures"].Keys){
-        Write-Debug "Feature $feature with targetstate $($IniContent["optionalfeatures"][$feature])"
-        if($IniContent["optionalfeatures"][$feature] -eq "enable"){
+    foreach($feature in $Features.Keys){
+        Write-Debug "Feature $feature with targetstate $($Features[$feature])"
+        if($Features[$feature] -eq "enable"){
             Get-WindowsOptionalFeature -FeatureName $feature -Online | Where-Object {$_.state -eq "Disabled"} | Enable-WindowsOptionalFeature -Online -NoRestart
         }else{
             Get-WindowsOptionalFeature -FeatureName $feature -Online | Where-Object {$_.state -eq "Enabled"} | Disable-WindowsOptionalFeature -Online -NoRestart
@@ -304,16 +303,6 @@ function Setup-Partitions($Group = "default"){
     }
 }
 
-function Load-Ini($Name = ".\default-settings\settings.ini"){
-    if(Test-Path ".\$Name"){
-        Set-Variable -Name "IniContent" -Value (Get-IniContent ".\$Name") -Scope Global
-        Write-Host "Ini geladen"
-    }
-    else{
-        Write-Host "No $Name file found"
-    }
-}
-
 function Setup-Powershell($Group = "default"){
     Write-Host "Setting up Powershell"
     Update-Help
@@ -371,25 +360,26 @@ function Start-Setup($Group = "default"){
         Read-Host "Windows update service stopped. Press enter to continue"
 
 
-        if(Test-Path ".\prepend_custom.ps1"){
+        if(Test-Path ".\prepend_custom.ps1") {
             & ".\$Group\scripts\prepend_custom.ps1"
         }
         #ToDo check if there is an advantage of changing the order?
-        Load-Ini -Name ".\$Group\settings\settings.ini"
+        $IniContent = Get-IniContent -filePath ".\$Group\settings\settings.ini"
+
         Setup-Powershell -Group $Group
         Setup-Partitions -Group $Group
         Load-Registry -Group $Group
-        Set-OptionalFeatures
+        Set-OptionalFeatures -Features $IniContent["optionalfeatures"]
         Import-ScheduledTasks -Group $Group
         Import-GPO -Group $Group
-        Create-Symlinks
-        Setup-FileAssociations
+        Create-Symlinks -Links $IniContent["links"]
+        Setup-FileAssociations -Associations $IniContent["associations"]
         Setup-Hosts -Group $Group
         Setup-Taskbar -Group $Group
         Setup-Quickaccess -Group $Group
         Remove-Bloatware -Group $Group
         Install-Programs -Group $Group
-        if(Test-Path ".\append_custom.ps1"){
+        if(Test-Path ".\append_custom.ps1") {
             & ".\$Group\scripts\append_custom.ps1"
         }
 
