@@ -201,7 +201,7 @@ function Install-Programs($Group = "default"){
         if(Test-Path ".\$Group\install\chocolatey-repository.ini"){
             Write-Debug "Removing default repository and loading new repositories from file"
             choco source remove -n=chocolatey
-            $sources = Get-IniContent ".\$Group\install\chocolatey-repository.ini"
+            $sources = Get-IniContent -FilePath ".\$Group\install\chocolatey-repository.ini" -IgnoreComments
             foreach($source in $sources.Keys) {
                 $splatter = $sources[$source]
                 choco source add --name $source @splatter
@@ -253,7 +253,7 @@ function Remove-Bloatware($Group = "default"){
 function Setup-Partitions($Group = "default"){
     Write-Host "Setting up partitions"
     if(Test-Path ".\$Group\settings\partitions.ini") {
-        $partitions = Get-IniContent ".\$Group\settings\partitions.ini"
+        $partitions = Get-IniContent -FilePath ".\$Group\settings\partitions.ini" -IgnoreComments
         #Find all driveletters that are wanted
         $unusable = @()
         foreach($drive in $partitions.Keys) {
@@ -358,7 +358,7 @@ function Start-Setup($Group = "default"){
         if(Test-Path ".\prepend_custom.ps1") {
             & ".\$Group\scripts\prepend_custom.ps1"
         }
-        $IniContent = Get-IniContent -filePath ".\$Group\settings\settings.ini"
+        $IniContent = Get-IniContent -FilePath ".\$Group\settings\settings.ini" -IgnoreComments
 
         Setup-Powershell -Group $Group
         Setup-Partitions -Group $Group
