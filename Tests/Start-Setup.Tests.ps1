@@ -20,21 +20,21 @@ Describe "Start-Setup"{
             #ToDo is there a way to check for repository?
         #From chocolatey
             It "Successfully installed Steam from chocolatey"{
-                Test-Path "C:\Program Files (x86)\Steam" | Should -Be $true
+                "C:\Program Files (x86)\Steam" | Should -Exist
             }
             It "Successfully installed git from chocolatey"{
-                Test-Path "C:\Program Files\Git" | Should -Be $true
+                "C:\Program Files\Git" | Should -Exist
             }
         #From url
             It "Successfully installed chromium from url"{
-                Test-Path "C:\Program Files\Chromium" | Should -Be $true
+                "C:\Program Files\Chromium" | Should -Exist
             }
         #From winget
             It "Successfully installed PuTTY from winget"{
-                Test-Path "C:\Program Files\PuTTY" | Should -Be $true
+                "C:\Program Files\PuTTY" | Should -Exist
             }
             It "Successfully installed WinRAR from winget"{
-                Test-Path "C:\Program Files\WinRAR" | Should -Be $true
+                "C:\Program Files\WinRAR" | Should -Exist
             }
         #Powershell module
             It "Successfully installed package provider NuGet"{
@@ -46,13 +46,13 @@ Describe "Start-Setup"{
             }
         #Remove bloatware
             It "Successfully removed bloatware *candy*"{
-                Get-PackageProvider *candy* | Should -Be $true
+                Get-PackageProvider *candy* | Should -Be $false
             }
             It "Successfully removed bloatware *king*"{
-                Get-PackageProvider *king* | Should -Be $true
+                Get-PackageProvider *king* | Should -Be $false
             }
             It "Successfully removed bloatware *xing*"{
-                Get-PackageProvider *xing* | Should -Be $true
+                Get-PackageProvider *xing* | Should -Be $false
             }
     #Test quickaccess
         #ToDo is there a way to check quickaccess items?
@@ -73,7 +73,7 @@ Describe "Start-Setup"{
         #ToDo GPEDIT + partitions
         #Registry
             It "Successfully import registry keys"{
-                Get-ItemPropertyValue -Path "HKCU:\Control Panel\Desktop" -Name "JPEGImportQuality" | Should -Be $true
+                Get-ItemPropertyValue -Path "HKCU:\Control Panel\Desktop" -Name "JPEGImportQuality" | Should -Be 100
             }
         #Settings
             #Optionalfeatures
