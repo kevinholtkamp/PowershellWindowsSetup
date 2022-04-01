@@ -16,7 +16,8 @@ function Load-Registry($Group = "default"){
         Write-Host "Importing registry file"
         reg import ".\$Group\settings\registry.reg"
         Write-Host "Done importing registry file"
-    }else{
+    }
+    else{
         Write-Host "Cannot find registry file"
     }
 }
@@ -111,7 +112,8 @@ function Set-OptionalFeatures($Features){
         Write-Debug "Feature $feature with targetstate $($Features[$feature])"
         if($Features[$feature] -eq "enable"){
             Get-WindowsOptionalFeature -FeatureName $feature -Online | Where-Object {$_.state -eq "Disabled"} | Enable-WindowsOptionalFeature -Online -NoRestart
-        }else{
+        }
+        else{
             Get-WindowsOptionalFeature -FeatureName $feature -Online | Where-Object {$_.state -eq "Enabled"} | Disable-WindowsOptionalFeature -Online -NoRestart
         }
         Write-Debug "Done with feature $feature with new state $((Get-WindowsOptionalFeature -FeatureName $feature -Online).State)"
@@ -132,7 +134,7 @@ function Setup-Hosts($Group = "default"){
 
     if(Test-Path ".\$Group\hosts\from-url.txt"){
         Write-Debug "Adding hosts from url"
-        foreach($line in (Get-Content -Path ".\$Group\hosts\from-url.txt" | Where-Object { $_ -notlike ";.*" })){
+        foreach($line in (Get-Content -Path ".\$Group\hosts\from-url.txt" | Where-Object {$_ -notlike ";.*"})){
             Write-Debug "Loading hosts from $line"
             Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Invoke-WebRequest -URI $line -UseBasicParsing).Content
             Write-Debug "Done loading hosts from $line"
@@ -159,7 +161,7 @@ function Import-GPO($Group = "default"){
 function Setup-Quickaccess($Group = "default"){
     if(Test-Path ".\$Group\quickaccess\folders.txt"){
         Write-Host "Setting up quickaccess"
-        foreach ($folder in (Get-Content ".\$Group\quickaccess\folders.txt" | Where-Object { $_ -notlike ";.*" })){
+        foreach($folder in (Get-Content ".\$Group\quickaccess\folders.txt" | Where-Object {$_ -notlike ";.*"})){
             Write-Debug "Adding $folder to quickaccess"
             (New-Object -com shell.application).Namespace($folder).Self.InvokeVerb("pintohome")
             Write-Debug "Done adding $folder to quickaccess"
@@ -173,7 +175,7 @@ function Setup-Quickaccess($Group = "default"){
 
 function Import-ScheduledTasks($Group = "default"){
     Write-Host "Importing scheduled tasks"
-    foreach ($task in Get-Childitem ".\$Group\scheduledTasks\*.xml") {
+    foreach($task in Get-Childitem ".\$Group\scheduledTasks\*.xml"){
         Write-Debug "Adding task $task"
         Register-ScheduledTask -Xml ".\$Group\ScheduledTasks\$task" -TaskName $task
         Write-Debug "Done adding task $task"
@@ -191,7 +193,7 @@ function Install-Programs($Group = "default"){
 
     if(Test-Path ".\$Group\install\from-url.txt"){
         Write-Debug "Installing from url"
-        foreach ($url in (Get-Content ".\$Group\install\from-url.txt" | Where-Object { $_ -notlike ";.*" })){
+        foreach($url in (Get-Content ".\$Group\install\from-url.txt" | Where-Object {$_ -notlike ";.*"})){
             Write-Debug "Installing $url from url"
             $index++
             (New-Object System.Net.WebClient).DownloadFile($url, "$($env:TEMP)\$index.exe")
@@ -204,7 +206,7 @@ function Install-Programs($Group = "default"){
         Write-Host "No install from-url file found"
     }
 
-    if(Test-Path ".\$Group\install\from-chocolatey.txt") {
+    if(Test-Path ".\$Group\install\from-chocolatey.txt"){
         Write-Debug "Installing chocolatey"
         Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
         choco feature enable -n allowGlobalConfirmation
@@ -213,14 +215,14 @@ function Install-Programs($Group = "default"){
             Write-Debug "Removing default repository and loading new repositories from file"
             choco source remove -n=chocolatey
             $sources = Get-IniContent -FilePath ".\$Group\install\chocolatey-repository.ini" -IgnoreComments
-            foreach($source in $sources.Keys) {
+            foreach($source in $sources.Keys){
                 $splatter = $sources[$source]
                 choco source add --name $source @splatter
             }
             Write-Debug "Done removing default repository and loading new repositories from file"
         }
         Write-Debug "Installing from chocolatey"
-        foreach ($i in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object { $_ -notlike ";.*" })){
+        foreach($i in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";.*"})){
             Write-Debug "Installing $i from chocolatey"
             choco install $i --limit-output --ignore-checksum
             choco pin add -n="$i"
@@ -234,7 +236,7 @@ function Install-Programs($Group = "default"){
 
     if(Test-Path ".\$Group\install\from-winget.txt"){
         Write-Debug "Installing from winget"
-        foreach ($i in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object { $_ -notlike ";.*" })){
+        foreach($i in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object {$_ -notlike ";.*"})){
             Write-Debug "Installing $i from winget"
             winget install $i
             Write-Debug "Done installing $i from winget"
@@ -249,7 +251,7 @@ function Install-Programs($Group = "default"){
 function Remove-Bloatware($Group = "default"){
     if(Test-Path ".\$Group\install\remove-bloatware.txt"){
         Write-Host "Removing bloatware"
-        foreach($line in (Get-Content ".\$Group\install\remove-bloatware.txt" | Where-Object { $_ -notlike ";.*" })){
+        foreach($line in (Get-Content ".\$Group\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";.*"})){
             Write-Debug "Removing $line"
             Get-AppxPackage $line | Remove-AppxPackage
             Write-Debug "Done removing $line"
@@ -263,12 +265,12 @@ function Remove-Bloatware($Group = "default"){
 
 function Setup-Partitions($Group = "default"){
     Write-Host "Setting up partitions"
-    if(Test-Path ".\$Group\settings\partitions.ini") {
+    if(Test-Path ".\$Group\settings\partitions.ini"){
         $partitions = Get-IniContent -FilePath ".\$Group\settings\partitions.ini" -IgnoreComments
         #Find all driveletters that are wanted
         $unusable = @()
-        foreach($drive in $partitions.Keys) {
-            foreach ($partition in $partitions["$drive"].Keys) {
+        foreach($drive in $partitions.Keys){
+            foreach($partition in $partitions["$drive"].Keys){
                 $unusable += $partitions["$drive"]["$partition"]
             }
         }
@@ -278,28 +280,28 @@ function Setup-Partitions($Group = "default"){
         Write-Debug "Found all wanted and currently used driveletters: $unusable"
         #Find all free usable drive letters (Not currently used and not wanted)
         65..90|foreach-object{
-            if (-not $unusable.Contains("$( [char]$_ ):\")) {
+            if(-not $unusable.Contains("$([char]$_):\")){
                 $usable += [char]$_
             }
         }
         $usableIndex = 0
         Write-Debug "Found all freely usable drive letters (Not used  & not wanted): $usable"
         #Temporarily assign all partitions to one of those letters
-        foreach($drive in $partitions.Keys) {
-            foreach ($partition in $partitions["$drive"].Keys) {
-                Write-Debug "Assigning partition $partition of drive $drive to temporary letter $( $usable[$usableIndex] )"
+        foreach($drive in $partitions.Keys){
+            foreach($partition in $partitions["$drive"].Keys){
+                Write-Debug "Assigning partition $partition of drive $drive to temporary letter $($usable[$usableIndex])"
                 Get-Disk | Where-Object SerialNumber -EQ "$drive" | Get-Partition | Where-Object PartitionNumber -EQ $partition | Set-Partition -NewDriveLetter $usable[$usableIndex]
                 $usableIndex++
-                Write-Debug "Done assigning partition $partition of drive $drive to temporary letter $( $usable[$usableIndex] )"
+                Write-Debug "Done assigning partition $partition of drive $drive to temporary letter $($usable[$usableIndex])"
             }
         }
         Write-Debug "All partitions set to temporary driveletters"
         #Assign all partitions to their wanted letter
-        foreach($drive in $partitions.Keys) {
-            foreach ($partition in $partitions["$drive"].Keys) {
-                Write-Debug "Assigning partition $partition of drive $drive to letter $( $partitions["$drive"]["$partition"] )"
+        foreach($drive in $partitions.Keys){
+            foreach($partition in $partitions["$drive"].Keys){
+                Write-Debug "Assigning partition $partition of drive $drive to letter $($partitions["$drive"]["$partition"])"
                 Get-Disk | Where-Object SerialNumber -EQ "$drive" | Get-Partition | Where-Object PartitionNumber -EQ $partition | Set-Partition -NewDriveLetter $partitions["$drive"]["$partition"]
-                Write-Debug "Done assigning partition $partition of drive $drive to letter $( $partitions["$drive"]["$partition"] )"
+                Write-Debug "Done assigning partition $partition of drive $drive to letter $($partitions["$drive"]["$partition"])"
             }
         }
         Write-Host "Done setting up partitions"
@@ -314,7 +316,7 @@ function Setup-Powershell($Group = "default"){
     Update-Help
     if(Test-Path ".\$Group\install\powershell-packageprovider.txt"){
         Write-Debug "Installing packageproviders"
-        foreach($pp in (Get-Content ".\$Group\install\powershell-packageprovider.txt" | Where-Object { $_ -notlike ";.*" })){
+        foreach($pp in (Get-Content ".\$Group\install\powershell-packageprovider.txt" | Where-Object {$_ -notlike ";.*"})){
             Write-Debug "Installing packageprovider $pp"
             Install-PackageProvider -Name $pp -Force -Confirm:$false
             Write-Debug "Done installing packageprovider $pp"
@@ -327,7 +329,7 @@ function Setup-Powershell($Group = "default"){
 
     if(Test-Path ".\$Group\install\powershell-module.txt"){
         Write-Debug "Installing modules"
-        foreach($module in (Get-Content ".\$Group\install\powershell-module.txt" | Where-Object { $_ -notlike ";.*" })){
+        foreach($module in (Get-Content ".\$Group\install\powershell-module.txt" | Where-Object {$_ -notlike ";.*"})){
             Write-Debug "Installing module $module"
             Install-Module -Name $module -Force -Confirm:$false
             Write-Debug "Done installing module $module"
@@ -356,9 +358,9 @@ function Setup-Taskbar($Group = "default"){
 function Start-Setup($Group = "default"){
     Start-Transcript "$home\Desktop\$(Get-Date -Format "yyyy_MM_dd")_setup.transcript"
 
-    if(Test-Path ".\$Group\") {
+    if(Test-Path ".\$Group\"){
         Write-Host "Creating Windows Checkpoint"
-        Checkpoint-Computer -Description "Before Start-Setup at $( Get-Date )"
+        Checkpoint-Computer -Description "Before Start-Setup at $(Get-Date)"
         Read-Host "Checkpoint created. Press enter to continue"
 
         Write-Host "Stopping Windows update service"
@@ -366,7 +368,7 @@ function Start-Setup($Group = "default"){
         Read-Host "Windows update service stopped. Press enter to continue"
 
 
-        if(Test-Path ".\prepend_custom.ps1") {
+        if(Test-Path ".\prepend_custom.ps1"){
             & ".\$Group\scripts\prepend_custom.ps1"
         }
         $IniContent = Get-IniContent -FilePath ".\$Group\settings\settings.ini" -IgnoreComments
@@ -384,13 +386,13 @@ function Start-Setup($Group = "default"){
         Setup-Quickaccess -Group $Group
         Remove-Bloatware -Group $Group
         Install-Programs -Group $Group
-        if(Test-Path ".\append_custom.ps1") {
+        if(Test-Path ".\append_custom.ps1"){
             & ".\$Group\scripts\append_custom.ps1"
         }
 
 
         Write-Host "Creating Windows Checkpoint"
-        Checkpoint-Computer -Description "After Start-Setup at $( Get-Date )"
+        Checkpoint-Computer -Description "After Start-Setup at $(Get-Date)"
         Read-Host "Checkpoint created. Press enter to continue"
 
         Write-Host "Starting Windows update service"
