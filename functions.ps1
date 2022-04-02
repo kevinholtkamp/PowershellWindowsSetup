@@ -22,11 +22,7 @@ Function Create-Association($ext, $exe){
 }
 
 function New-ItemTransaction([string]$Path, [string]$Name, [string]$ItemType, [switch]$Force){
-    $origWhatIfPreference = $WhatIfPreference.IsPresent
-    $WhatIfPreference = $false
     New-Item -Path $Path -Name $Name -ItemType $ItemType -ErrorAction stop -WhatIf -Force:$Force | Out-Null
-    $WhatIfPreference = $origWhatIfPreference
-
     $ScriptBlock = {New-Item -Path $Path -Name $Name -ItemType $ItemType -ErrorAction stop -Force:$Force}
     $LocalTransactionArray = Get-Variable -Name "TransactionArray" -Scope Global -ValueOnly
     $LocalTransactionArray += $ScriptBlock
