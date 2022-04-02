@@ -28,6 +28,9 @@ function Create-Symlinks($Group = "default"){
         $IniContent = Get-IniContent -FilePath ".\$Group\settings\symlinks.ini" -IgnoreComments
         foreach($linkPath in $IniContent.Keys){
             Write-Debug "Creating Symlinks for LinkPath $linkPath"
+            if(!(Test-Path $linkPath)){
+                New-Item $linkPath -ItemType Directory
+            }
             $Links = $IniContent[$linkPath]
             foreach($name in $Links.Keys){
                 $path = $Links[$name]
