@@ -28,11 +28,13 @@ function Create-Symlinks($Group = "default"){
         $IniContent = Get-IniContent -FilePath ".\$Group\settings\symlinks.ini" -IgnoreComments
         foreach($linkPath in $IniContent.Keys){
             Write-Debug "Creating Symlinks for LinkPath $linkPath"
+            if(!(Test-Path $linkPath)){
+                New-Item $linkPath -ItemType Directory
+            }
             $Links = $IniContent[$linkPath]
             foreach($name in $Links.Keys){
                 $path = $Links[$name]
                 Write-Debug "Create-Symlink: $name | $($path):"
-                Start-Transaction -RollbackPreference Never
                 try{
                     if(Test-Path $path){
                         Write-Debug "Local folder exists"
@@ -40,24 +42,24 @@ function Create-Symlinks($Group = "default"){
                             Write-Debug "Local folder is no Symlink yet"
                             if(!(Test-Path "$linkPath\$name")){
                                 Write-Debug "Does not exist in LinkPath"
-                                New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory" -UseTransaction
+                                New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory"
                                 Write-Debug "New folder created in LinkPath"
                             }
                             else{
                                 Write-Debug "Exists in LinkPath"
                             }
-                            Copy-Item -Path "$path\*" -Destination "$linkPath\$name\" -Recurse -UseTransaction
+                            Copy-Item -Path "$path\*" -Destination "$linkPath\$name\" -Recurse
                             Write-Debug "Copied to LinkPath sucessfully"
                             Remove-ItemSafely -Path $path -Recurse -Force -UseTransaction
                             Write-Debug "Removed old folder"
-                            New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name" -UseTransaction
+                            New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name"
                             Write-Debug "SymLink created sucessfully"
                         }
                         else{
                             Write-Debug "Local folder is a SymLink already"
                             if(!(Test-Path "$linkPath\$name")){
                                 Write-Debug "But does not exist in LinkPath"
-                                New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory" -UseTransaction
+                                New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory"
                                 Write-Debug "New folder created in LinkPath"
                             }
                             else{
@@ -65,11 +67,11 @@ function Create-Symlinks($Group = "default"){
                             }
                             if((Get-Item $path | Select-Object -ExpandProperty Target) -ne "$linkPath\$name"){
                                 Write-Debug "Symlink exists, but has a wrong target"
-                                Copy-Item -Path "$path\*" -Destination "$linkPath\$name\" -Recurse -UseTransaction
+                                Copy-Item -Path "$path\*" -Destination "$linkPath\$name\" -Recurse
                                 Write-Debug "Everything copied from false target"
                                 Remove-ItemSafely -Path $path -UseTransaction
                                 Write-Debug "Old symlink removed"
-                                New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name" -UseTransaction
+                                New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name"
                                 Write-Debug "New Symlink created"
                             }
                             else{
@@ -81,21 +83,19 @@ function Create-Symlinks($Group = "default"){
                         Write-Debug "Local folder does not exist"
                         if(!(Test-Path "$linkPath\$name")){
                             Write-Debug "Does not exist in LinkPath"
-                            New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory" -UseTransaction
+                            New-Item -Path "$linkPath\" -Name "$name" -ItemType "directory" -Force
                             Write-Debug "New folder created in LinkPath"
                         }
                         else{
                             Write-Debug "Exists in LinkPath"
                         }
-                        New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name" -Force -UseTransaction
+                        New-Item -Path $path -ItemType SymbolicLink -Value "$linkPath\$name" -Force
                         Write-Debug "Symlink created successfully"
                     }
                     Write-Host "No errors occured, applying changes"
-                    Complete-Transaction
                 }
                 catch{
                     Write-Host "An error occured, rolling back changes"
-                    Undo-Transaction
                 }
             }
         }
@@ -235,7 +235,12 @@ function Install-Programs($Group = "default"){
     }
 
     if(Test-Path ".\$Group\install\from-winget.txt"){
-        Write-Debug "Installing from winget"
+        Write-Debug "Installing winget"
+        (New-Object System.Net.WebClient).DownloadFile("https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.7.1", "$($env:TEMP)\microsoft.ui.xaml.zip")
+        Expand-Archive -Path "$($env:TEMP)\microsoft.ui.xaml.zip" -DestinationPath "$($env:PSModulePath.Split(';')[0])\microsoft.ui.xaml\"
+        (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($env:TEMP)\winget.msixbundle")
+        Add-AppxPackage -Path "$($env:TEMP)\winget.msixbundle"
+        Write-Debug "Successfully installed winget"
         foreach($i in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object {$_ -notlike ";.*"})){
             Write-Debug "Installing $i from winget"
             winget install $i
