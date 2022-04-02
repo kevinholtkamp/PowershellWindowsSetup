@@ -21,20 +21,20 @@ Function Create-Association($ext, $exe){
     cmd /c "ftype $name=`"$exe`" `"%1`""
 }
 
-function New-ItemTransaction([string]$Path, [string]$Name, [string]$ItemType){
+function New-ItemTransaction([string]$Path, [string]$Name, [string]$ItemType, [switch]$Force){
     $origWhatIfPreference = $WhatIfPreference.IsPresent
     $WhatIfPreference = $false
-    New-Item -Path $Path -Name $Name -ItemType $ItemType -ErrorAction stop -WhatIf | Out-Null
+    New-Item -Path $Path -Name $Name -ItemType $ItemType -ErrorAction stop -WhatIf -Force:$Force | Out-Null
     $WhatIfPreference = $origWhatIfPreference
 
-    $ScriptBlock = {New-Item -Path $Path -Name $Name -ItemType $ItemType -ErrorAction stop}
+    $ScriptBlock = {New-Item -Path $Path -Name $Name -ItemType $ItemType -ErrorAction stop -Force:$Force}
     $LocalTransactionArray = Get-Variable -Name "TransactionArray" -Scope Global -ValueOnly
     $LocalTransactionArray += $ScriptBlock
     Set-Variable -Name "TransactionArray" -Scope Global -Value $LocalTransactionArray
 }
-function Copy-ItemTransaction([string]$Path, [string]$Destination, [switch]$Recurse){
-    Copy-Item -Path $Path -Destination $Destination -Recurse:$Recurse -ErrorAction stop -WhatIf | Out-Null
-    $ScriptBlock = {Copy-Item -Path $Path -Destination $Destination -Recurse:$Recurse -ErrorAction stop}
+function Copy-ItemTransaction([string]$Path, [string]$Destination, [switch]$Recurse, [switch]$Force){
+    Copy-Item -Path $Path -Destination $Destination -Recurse:$Recurse -ErrorAction stop -WhatIf -Force:$Force | Out-Null
+    $ScriptBlock = {Copy-Item -Path $Path -Destination $Destination -Recurse:$Recurse -ErrorAction stop -Force:$Force}
     $LocalTransactionArray = Get-Variable -Name "TransactionArray" -Scope Global -ValueOnly
     $LocalTransactionArray += $ScriptBlock
     Set-Variable -Name "TransactionArray" -Scope Global -Value $LocalTransactionArray
