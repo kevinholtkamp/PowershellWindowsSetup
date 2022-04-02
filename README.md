@@ -15,7 +15,7 @@ Additionally, I try to create the script in a way where you can run it again at 
         Start-Setup -Group "default"
 ```
 ## Configuration files
-###. /hosts/
+### ./hosts/
 - `from-file.txt` plain text file where each line represents one entry in the windows hosts file format
 - `from-url.txt` plain text file where each line represents a url to a file in the windows hosts file format
 ### ./install/
