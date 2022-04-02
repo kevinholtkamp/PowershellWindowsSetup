@@ -1,5 +1,10 @@
 Function Test-Symlink($Path){
-    ((Get-Item $Path).Attributes.ToString() -match "ReparsePoint")
+    if(Test-Path $Path){
+        ((Get-Item $Path).Attributes.ToString() -match "ReparsePoint")
+    }
+    else{
+        $false
+    }
 }
 #Source: https://stackoverflow.com/a/59048942
 Function Create-Association($ext, $exe){
