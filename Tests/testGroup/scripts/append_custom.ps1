@@ -1,1 +1,1 @@
-$ExecutedAppend = $true
+Set-Variable -Name "ExecutedAppend" -Value $true -Scope Global
