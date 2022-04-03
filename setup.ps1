@@ -65,8 +65,10 @@ function Create-Symlinks($Group = "default"){
                             else{
                                 Write-Debug "Exists in LinkPath"
                             }
-                            if((Get-Item $path | Select-Object -ExpandProperty Target) -ne "$linkPath\$name"){
+                            if((Get-SymlinkTarget $path) -ne "$linkPath\$name"){
                                 Write-Debug "Symlink exists, but has a wrong target"
+                                Write-Debug "Target: $linkPath\$name"
+                                Write-Debug "Wanted Target: $(Get-SymlinkTarget $path)"
                                 Copy-Item -Path "$path\*" -Destination "$linkPath\$name\" -Recurse
                                 Write-Debug "Everything copied from false target"
                                 Remove-ItemSafely -Path $path -UseTransaction

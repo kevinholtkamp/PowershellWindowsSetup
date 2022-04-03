@@ -6,6 +6,14 @@ Function Test-Symlink($Path){
         $false
     }
 }
+Function Get-SymlinkTarget($Path){
+    if(Test-Path $Path){
+        ((Get-Item $Path | Select-Object -ExpandProperty Target) -replace "^UNC\\","\\")
+    }
+    else{
+        ""
+    }
+}
 #Source: https://stackoverflow.com/a/59048942
 Function Create-Association($ext, $exe){
     $name = cmd /c "assoc $ext 2>NUL"
