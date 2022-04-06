@@ -50,7 +50,7 @@ function Create-Symlinks($Group = "default"){
                             }
                             Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
                             Write-Debug "Copied to LinkPath sucessfully"
-                            Remove-ItemSafely -Path $Path -Recurse -Force -UseTransaction
+                            Remove-ItemSafely -Path $Path -Recurse -Force
                             Write-Debug "Removed old folder"
                             New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name"
                             Write-Debug "SymLink created sucessfully"
@@ -71,7 +71,7 @@ function Create-Symlinks($Group = "default"){
                                 Write-Debug "Wanted Target: $(Get-SymlinkTarget $Path)"
                                 Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
                                 Write-Debug "Everything copied from false target"
-                                Remove-ItemSafely -Path $Path -UseTransaction
+                                Remove-ItemSafely -Path $Path
                                 Write-Debug "Old symlink removed"
                                 New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name"
                                 Write-Debug "New Symlink created"
