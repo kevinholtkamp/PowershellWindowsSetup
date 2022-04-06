@@ -136,7 +136,7 @@ function Setup-Hosts($Group = "default"){
 
     if(Test-Path ".\$Group\hosts\from-url.txt"){
         Write-Debug "Adding hosts from url"
-        foreach($Line in (Get-Content -Path ".\$Group\hosts\from-url.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($Line in (Get-Content -Path ".\$Group\hosts\from-url.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Debug "Loading hosts from $Line"
             Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Invoke-WebRequest -URI $Line -UseBasicParsing).Content
             Write-Debug "Done loading hosts from $Line"
@@ -163,7 +163,7 @@ function Import-GPO($Group = "default"){
 function Setup-Quickaccess($Group = "default"){
     if(Test-Path ".\$Group\quickaccess\folders.txt"){
         Write-Host "Setting up quickaccess"
-        foreach($Folder in (Get-Content ".\$Group\quickaccess\folders.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($Folder in (Get-Content ".\$Group\quickaccess\folders.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Debug "Adding $Folder to quickaccess"
             (New-Object -com shell.application).Namespace($Folder).Self.InvokeVerb("pintohome")
             Write-Debug "Done adding $Folder to quickaccess"
@@ -195,7 +195,7 @@ function Install-Programs($Group = "default"){
 
     if(Test-Path ".\$Group\install\from-url.txt"){
         Write-Debug "Installing from url"
-        foreach($URL in (Get-Content ".\$Group\install\from-url.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($URL in (Get-Content ".\$Group\install\from-url.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Debug "Installing $URL from url"
             $Index++
             (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
@@ -224,7 +224,7 @@ function Install-Programs($Group = "default"){
             Write-Debug "Done removing default repository and loading new repositories from file"
         }
         Write-Debug "Installing from chocolatey"
-        foreach($Install in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($Install in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Debug "Installing $Install from chocolatey"
             choco install $Install --limit-output --ignore-checksum
             choco pin add -n="$Install"
@@ -243,7 +243,7 @@ function Install-Programs($Group = "default"){
         (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($Env:TEMP)\winget.msixbundle")
         Add-AppxPackage -Path "$($Env:TEMP)\winget.msixbundle"
         Write-Debug "Successfully installed winget"
-        foreach($Install in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($Install in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Debug "Installing $Install from winget"
             winget install $Install
             Write-Debug "Done installing $Install from winget"
@@ -258,7 +258,7 @@ function Install-Programs($Group = "default"){
 function Remove-Bloatware($Group = "default"){
     if(Test-Path ".\$Group\install\remove-bloatware.txt"){
         Write-Host "Removing bloatware"
-        foreach($AppxPackage in (Get-Content ".\$Group\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($AppxPackage in (Get-Content ".\$Group\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Debug "Removing $AppxPackage"
             Get-AppxPackage $AppxPackage | Remove-AppxPackage
             Write-Debug "Done removing $AppxPackage"
@@ -323,7 +323,7 @@ function Setup-Powershell($Group = "default"){
     Update-Help
     if(Test-Path ".\$Group\install\powershell-packageprovider.txt"){
         Write-Debug "Installing packageproviders"
-        foreach($PackageProvider in (Get-Content ".\$Group\install\powershell-packageprovider.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($PackageProvider in (Get-Content ".\$Group\install\powershell-packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
             if(Get-PackageProvider $PackageProvider){
                 Write-Debug "PackageProvider $PackageProvider is already installed, skipping..."
             }
@@ -341,7 +341,7 @@ function Setup-Powershell($Group = "default"){
 
     if(Test-Path ".\$Group\install\powershell-module.txt"){
         Write-Debug "Installing modules"
-        foreach($PowershellModule in (Get-Content ".\$Group\install\powershell-module.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($PowershellModule in (Get-Content ".\$Group\install\powershell-module.txt" | Where-Object {$_ -notlike ";*"})){
             if(Get-InstalledModule $PowershellModule){
                 Write-Debug "Module $PowershellModule is already installed, skipping..."
             }
