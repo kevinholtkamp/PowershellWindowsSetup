@@ -44,24 +44,24 @@ function Create-Symlinks($Group = "default"){
                             Write-Debug "Local folder is no Symlink yet"
                             if(!(Test-Path "$LinkPath\$Name")){
                                 Write-Debug "Does not exist in LinkPath"
-                                New-ItemTransaction -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -UseTransaction
+                                New-ItemTransaction -Path "$LinkPath\" -Name "$Name" -ItemType "directory"
                                 Write-Debug "New folder created in LinkPath"
                             }
                             else{
                                 Write-Debug "Exists in LinkPath"
                             }
-                            Copy-ItemTransaction -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse -UseTransaction
+                            Copy-ItemTransaction -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
                             Write-Debug "Copied to LinkPath sucessfully"
-                            Remove-ItemSafelyTransaction -Path $Path -Recurse -Force -UseTransaction
+                            Remove-ItemSafelyTransaction -Path $Path -Recurse -Force
                             Write-Debug "Removed old folder"
-                            New-ItemTransaction -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -UseTransaction
+                            New-ItemTransaction -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name"
                             Write-Debug "SymLink created sucessfully"
                         }
                         else{
                             Write-Debug "Local folder is a SymLink already"
                             if(!(Test-Path "$LinkPath\$Name")){
                                 Write-Debug "But does not exist in LinkPath"
-                                New-ItemTransaction -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -UseTransaction
+                                New-ItemTransaction -Path "$LinkPath\" -Name "$Name" -ItemType "directory"
                                 Write-Debug "New folder created in LinkPath"
                             }
                             else{
@@ -71,11 +71,11 @@ function Create-Symlinks($Group = "default"){
                                 Write-Debug "Symlink exists, but has a wrong target"
                                 Write-Debug "Target: $LinkPath\$Name"
                                 Write-Debug "Wanted Target: $(Get-SymlinkTarget $Path)"
-                                Copy-ItemTransaction -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse -UseTransaction
+                                Copy-ItemTransaction -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
                                 Write-Debug "Everything copied from false target"
-                                Remove-ItemSafelyTransaction -Path $Path -UseTransaction
+                                Remove-ItemSafelyTransaction -Path $Path
                                 Write-Debug "Old symlink removed"
-                                New-ItemTransaction -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -UseTransaction
+                                New-ItemTransaction -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name"
                                 Write-Debug "New Symlink created"
                             }
                             else{
@@ -87,13 +87,13 @@ function Create-Symlinks($Group = "default"){
                         Write-Debug "Local folder does not exist"
                         if(!(Test-Path "$LinkPath\$Name")){
                             Write-Debug "Does not exist in LinkPath"
-                            New-ItemTransaction -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force -UseTransaction
+                            New-ItemTransaction -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
                             Write-Debug "New folder created in LinkPath"
                         }
                         else{
                             Write-Debug "Exists in LinkPath"
                         }
-                        New-ItemTransaction -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force -UseTransaction
+                        New-ItemTransaction -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
                         Write-Debug "Symlink created successfully"
                     }
                     Write-Debug "No errors occured, applying changes"
