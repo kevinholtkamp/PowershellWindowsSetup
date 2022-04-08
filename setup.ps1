@@ -235,16 +235,25 @@ function Install-Programs($Group = "default"){
     }
 
     if(Test-Path ".\$Group\install\from-winget.txt"){
-        Write-Debug "Installing winget"
-        (New-Object System.Net.WebClient).DownloadFile("https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.7.1", "$($env:TEMP)\microsoft.ui.xaml.zip")
-        Expand-Archive -Path "$($env:TEMP)\microsoft.ui.xaml.zip" -DestinationPath "$($env:PSModulePath.Split(';')[0])\microsoft.ui.xaml\"
-        (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($env:TEMP)\winget.msixbundle")
-        Add-AppxPackage -Path "$($env:TEMP)\winget.msixbundle"
-        Write-Debug "Successfully installed winget"
-        foreach($i in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})){
-            Write-Debug "Installing $i from winget"
-            winget install $i
-            Write-Debug "Done installing $i from winget"
+        if(!(Get-Command "winget" -errorAction SilentlyContinue)){
+#ToDo winget installation gets stuck
+#            Write-Debug "Installing winget"
+#            (New-Object System.Net.WebClient).DownloadFile("https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.7.1", "$($env:TEMP)\microsoft.ui.xaml.zip")
+#            Expand-Archive -Path "$($env:TEMP)\microsoft.ui.xaml.zip" -DestinationPath "$($env:PSModulePath.Split(';')[0])\microsoft.ui.xaml\"
+#            (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($env:TEMP)\winget.msixbundle")
+#            Add-AppxPackage -Path "$($env:TEMP)\winget.msixbundle"
+#            Write-Debug "Done installing winget"
+        }
+        if(Get-Command "winget" -errorAction SilentlyContinue){
+            Write-Debug "Installing from winget"
+            foreach($i in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})){
+                Write-Debug "Installing $i from winget"
+                winget install $i
+                Write-Debug "Done installing $i from winget"
+            }
+        }
+        else{
+            Write-Debug "Winget not installed, not installing packages"
         }
         Write-Debug "Done installing from winget"
     }
