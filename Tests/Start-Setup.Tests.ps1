@@ -2,7 +2,6 @@
 
 BeforeAll {
     $TestGroup = "Tests\testGroup"
-    $DebugPreference = "Continue"
     Install-Module -Name PsIni -Force -Confirm:$false
     Install-Module -Name Recycle -Force -Confirm:$false
     . .\setup.ps1
@@ -28,7 +27,9 @@ Describe "Start-Setup"{
 
     Context "Setup-Powershell"{
         BeforeAll{
+            $DebugPreference = "continue"
             Setup-Powershell -Group $TestGroup
+            $DebugPreference = "silentlycontinue"
         }
         It "PackageProvider NuGet"{
             Get-PackageProvider *NuGet* | Should -Be $true
@@ -40,14 +41,18 @@ Describe "Start-Setup"{
 
 #    Context "Setup-Partitions"{
 #        BeforeAll{
+#            $DebugPreference = "continue"
 #            Setup-Partitions -Group $TestGroup
+#            $DebugPreference = "silentlycontinue"
 #        }
 #        #ToDo
 #    }
 
     Context "Load-Registry"{
         BeforeAll{
+            $DebugPreference = "continue"
             Load-Registry -Group $TestGroup
+            $DebugPreference = "silentlycontinue"
         }
         It "Import registry keys"{
             Get-ItemPropertyValue -Path "HKCU:\Control Panel\Desktop" -Name "JPEGImportQuality" | Should -Be 100
@@ -56,7 +61,9 @@ Describe "Start-Setup"{
 
     Context "Set-OptionalFeatures"{
         BeforeAll{
+            $DebugPreference = "continue"
             Set-OptionalFeatures -Features $IniContent["optionalfeatures"]
+            $DebugPreference = "silentlycontinue"
         }
         It "Optional feature DirectPlay"{
             Get-WindowsOptionalFeature -FeatureName "DirectPlay" -Online | Where-Object {$_.state -eq "Enabled"} | Should -Be $true
@@ -68,7 +75,9 @@ Describe "Start-Setup"{
 
     Context "Import-ScheduledTasks"{
         BeforeAll{
+            $DebugPreference = "continue"
             Import-ScheduledTasks -Group $TestGroup
+            $DebugPreference = "silentlycontinue"
         }
         It "Import scheduled tasks"{
             Get-ScheduledTask *MicrosoftEdgeUpdateTaskMachineCore* | Should -Be $true
@@ -77,14 +86,18 @@ Describe "Start-Setup"{
 
 #    Context "Import-GPO"{
 #        BeforeAll{
+#            $DebugPreference = "continue"
 #            Import-GPO -Group $TestGroup
+#            $DebugPreference = "silentlycontinue"
 #        }
 #        #ToDo
 #    }
 
     Context "Create-Symlinks"{
         BeforeAll{
+            $DebugPreference = "continue"
             Create-Symlinks -Group $TestGroup
+            $DebugPreference = "silentlycontinue"
         }
         It "Steam config symlink"{
             Test-Symlink "C:\Program Files (x86)\Steam\config" | Should -Be $true
@@ -99,14 +112,18 @@ Describe "Start-Setup"{
 
 #    Context "Setup-FileAssociations"{
 #        BeforeAll{
+#            $DebugPreference = "continue"
 #            Setup-FileAssociations -Associations $IniContent["associations"]
+#            $DebugPreference = "silentlycontinue"
 #        }
 #        #ToDo Test for Setup-FileAssociations
 #    }
 
     Context "Setup-Hosts"{
         BeforeAll{
+            $DebugPreference = "continue"
             Setup-Hosts -Group $TestGroup
+            $DebugPreference = "silentlycontinue"
         }
         It "Importing hosts from file"{
             Select-String -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Pattern "fritz.box" | Should -not -BeNullOrEmpty
@@ -118,21 +135,27 @@ Describe "Start-Setup"{
 
 #    Context "Setup-Taskbar"{
 #        BeforeAll{
+#            $DebugPreference = "continue"
 #            Setup-Taskbar -Group $TestGroup
+#            $DebugPreference = "silentlycontinue"
 #        }
 #        #ToDo Test for Setup-Taskbar
 #    }
 
 #    Context "Setup-Quickaccess"{
 #        BeforeAll{
+#            $DebugPreference = "continue"
 #            Setup-Quickaccess -Group $TestGroup
+#            $DebugPreference = "silentlycontinue"
 #        }
 #        #ToDo Test for Setup-Quickaccess
 #    }
 
     Context "Remove-Bloatware"{
         BeforeAll{
+            $DebugPreference = "continue"
             Remove-Bloatware -Group $TestGroup
+            $DebugPreference = "silentlycontinue"
         }
         It "Removing bloatware *candy*"{
             Get-AppxPackage *candy* | Should -Be $null
@@ -147,7 +170,9 @@ Describe "Start-Setup"{
 
     Context "Install-Programs"{
         BeforeAll{
+            $DebugPreference = "continue"
             Install-Programs -Group $TestGroup
+            $DebugPreference = "silentlycontinue"
         }
         #ToDo Test for chocolatey Repository
         #From chocolatey
