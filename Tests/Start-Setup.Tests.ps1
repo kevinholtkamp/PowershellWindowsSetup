@@ -1,14 +1,9 @@
-
-
 BeforeAll {
-    $TestGroup = "Tests\testGroup"
-    Install-Module -Name PsIni -Force -Confirm:$false
-    Install-Module -Name Recycle -Force -Confirm:$false
+    . .\Tests\CommonTestParameters.ps1
+
     . .\setup.ps1
-    $IniContent = Get-IniContent -FilePath ".\$TestGroup\settings\settings.ini" -IgnoreComments
-    Mock -CommandName Write-Debug -MockWith {}
-    Mock -CommandName Read-Host -MockWith {Write-Host $Prompt}
-    Mock -CommandName Update-Help -MockWith {}
+
+    Set-Variable -Name "IniContent" -Value (Get-IniContent -FilePath ".\$TestGroup\settings\settings.ini" -IgnoreComments) -Scope Global
 }
 
 Describe "Start-Setup"{
