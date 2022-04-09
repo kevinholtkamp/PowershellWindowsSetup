@@ -324,7 +324,7 @@ function Setup-Powershell($Group = "default"){
     if(Test-Path ".\$Group\install\powershell-packageprovider.txt"){
         Write-Debug "Installing packageproviders"
         foreach($PackageProvider in (Get-Content ".\$Group\install\powershell-packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
-            if(Get-PackageProvider $PackageProvider){
+            if(Get-PackageProvider $PackageProvider -ErrorAction "silentlyContinue"){
                 Write-Debug "PackageProvider $PackageProvider is already installed, skipping..."
             }
             else{
@@ -342,7 +342,7 @@ function Setup-Powershell($Group = "default"){
     if(Test-Path ".\$Group\install\powershell-module.txt"){
         Write-Debug "Installing modules"
         foreach($PowershellModule in (Get-Content ".\$Group\install\powershell-module.txt" | Where-Object {$_ -notlike ";*"})){
-            if(Get-InstalledModule $PowershellModule){
+            if(Get-InstalledModule $PowershellModule -ErrorAction "silentlyContinue"){
                 Write-Debug "Module $PowershellModule is already installed, skipping..."
             }
             else{
