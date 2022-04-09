@@ -324,9 +324,14 @@ function Setup-Powershell($Group = "default"){
     if(Test-Path ".\$Group\install\powershell-packageprovider.txt"){
         Write-Debug "Installing packageproviders"
         foreach($PackageProvider in (Get-Content ".\$Group\install\powershell-packageprovider.txt" | Where-Object {$_ -notlike ";.*"})){
-            Write-Debug "Installing packageprovider $PackageProvider"
-            Install-PackageProvider -Name $PackageProvider -Force -Confirm:$False
-            Write-Debug "Done installing packageprovider $PackageProvider"
+            if(Get-PackageProvider $PackageProvider){
+                Write-Debug "PackageProvider $PackageProvider is already installed, skipping..."
+            }
+            else{
+                Write-Debug "Installing packageprovider $PackageProvider"
+                Install-PackageProvider -Name $PackageProvider -Force -Confirm:$False
+                Write-Debug "Done installing packageprovider $PackageProvider"
+            }
         }
         Write-Debug "Done installing packageproviders"
     }
