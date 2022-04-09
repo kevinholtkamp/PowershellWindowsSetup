@@ -337,9 +337,14 @@ function Setup-Powershell($Group = "default"){
     if(Test-Path ".\$Group\install\powershell-module.txt"){
         Write-Debug "Installing modules"
         foreach($PowershellModule in (Get-Content ".\$Group\install\powershell-module.txt" | Where-Object {$_ -notlike ";.*"})){
-            Write-Debug "Installing module $PowershellModule"
-            Install-Module -Name $PowershellModule -Force -Confirm:$False
-            Write-Debug "Done installing module $PowershellModule"
+            if(Get-InstalledModule $PowershellModule){
+                Write-Debug "Module $PowershellModule is already installed, skipping..."
+            }
+            else{
+                Write-Debug "Installing module $PowershellModule"
+                Install-Module -Name $PowershellModule -Force -Confirm:$False
+                Write-Debug "Done installing module $PowershellModule"
+            }
         }
         Write-Debug "Done installing modules"
     }
