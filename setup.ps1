@@ -197,7 +197,7 @@ function Install-Programs($Group = "default"){
             Write-Debug "Installing $url from url"
             $index++
             (New-Object System.Net.WebClient).DownloadFile($url, "$($env:TEMP)\$index.exe")
-            Start-Process "$($env:TEMP)\$index.exe" | Out-Null
+            Start-Process -FilePath "$($env:TEMP)\$index.exe" -ArgumentList "/S" | Out-Null
             Write-Debug "Done installing $url from url"
         }
         Write-Debug "Done installing from url"
