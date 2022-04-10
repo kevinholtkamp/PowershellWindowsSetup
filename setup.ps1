@@ -209,10 +209,16 @@ function Install-Programs($Group = "default"){
     if(Test-Path ".\$Group\install\from-chocolatey.txt"){
         if(!(Get-Command "choco" -errorAction SilentlyContinue)){
             Write-Debug "Installing chocolatey"
-            Start-Job {
+            $ChocolateyJob = Start-Job {
                 Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
-            } | Wait-Job -Timeout 120
-            Write-Debug "Done installing chocolatey"
+            }
+            if($ChocolateyJob | Wait-Job -Timeout 120){
+                Write-Debug "Done installing chocolatey"
+            }
+            else{
+                Stop-Job $ChocolateyJob
+                Write-Debug "Timeout while installing chocolatey, skipping..."
+            }
         }
         if(Get-Command "choco" -errorAction SilentlyContinue){
             choco feature enable -n allowGlobalConfirmation -ErrorAction SilentlyContinue
@@ -235,7 +241,7 @@ function Install-Programs($Group = "default"){
             }
         }
         else{
-            Write-Debug "Chocolatey not installed, not installing packages"
+            Write-Debug "Chocolatey not installed or requires a restart after install, not installing packages"
         }
         Write-Debug "Done installing from chocolatey"
     }
@@ -245,13 +251,20 @@ function Install-Programs($Group = "default"){
 
     if(Test-Path ".\$Group\install\from-winget.txt"){
         if(!(Get-Command "winget" -errorAction SilentlyContinue)){
-#ToDo winget installation gets stuck
-#            Write-Debug "Installing winget"
-#            (New-Object System.Net.WebClient).DownloadFile("https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.7.1", "$($env:TEMP)\microsoft.ui.xaml.zip")
-#            Expand-Archive -Path "$($env:TEMP)\microsoft.ui.xaml.zip" -DestinationPath "$($env:PSModulePath.Split(';')[0])\microsoft.ui.xaml\"
-#            (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($env:TEMP)\winget.msixbundle")
-#            Add-AppxPackage -Path "$($env:TEMP)\winget.msixbundle"
-#            Write-Debug "Done installing winget"
+            Write-Debug "Installing winget"
+            $WingetJob = Start-Job {
+                (New-Object System.Net.WebClient).DownloadFile("https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.7.1", "$($env:TEMP)\microsoft.ui.xaml.zip")
+                Expand-Archive -Path "$($env:TEMP)\microsoft.ui.xaml.zip" -DestinationPath "$($env:PSModulePath.Split(';')[0])\microsoft.ui.xaml\"
+                (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($env:TEMP)\winget.msixbundle")
+                Add-AppxPackage -Path "$($env:TEMP)\winget.msixbundle"
+            }
+            if($WingetJob | Wait-Job -Timeout 120){
+                Write-Debug "Done installing winget"
+            }
+            else{
+                Stop-Job $WingetJob
+                Write-Debug "Timout while installing winget, skipping..."
+            }
         }
         if(Get-Command "winget" -errorAction SilentlyContinue){
             Write-Debug "Installing from winget"
