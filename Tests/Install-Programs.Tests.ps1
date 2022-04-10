@@ -15,7 +15,7 @@ Describe "Install-Programs"{
         #ToDo Test for chocolatey Repository
         #From chocolatey
         It "Installed Steam from chocolatey"{
-            "C:\Program Files (x86)\Steam" | Should -Exist
+            "C:\Program Files (x86)\Steam\steam" | Should -Exist
         }
         It "Installed git from chocolatey"{
             "C:\Program Files\Git" | Should -Exist
