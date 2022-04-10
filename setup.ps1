@@ -207,26 +207,35 @@ function Install-Programs($Group = "default"){
     }
 
     if(Test-Path ".\$Group\install\from-chocolatey.txt"){
-        Write-Debug "Installing chocolatey"
-        Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
-        choco feature enable -n allowGlobalConfirmation
-        Write-Debug "Done installing chocolatey"
-        if(Test-Path ".\$Group\install\chocolatey-repository.ini"){
-            Write-Debug "Removing default repository and loading new repositories from file"
-            choco source remove -n=chocolatey
-            $sources = Get-IniContent -FilePath ".\$Group\install\chocolatey-repository.ini" -IgnoreComments
-            foreach($source in $sources.Keys){
-                $splatter = $sources[$source]
-                choco source add --name $source @splatter
-            }
-            Write-Debug "Done removing default repository and loading new repositories from file"
+        if(!(Get-Command "choco" -errorAction SilentlyContinue)){
+            Write-Debug "Installing chocolatey"
+            Start-Job {
+                Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
+            } | Wait-Job -Timeout 120
+            Write-Debug "Done installing chocolatey"
         }
-        Write-Debug "Installing from chocolatey"
-        foreach($i in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"})){
-            Write-Debug "Installing $i from chocolatey"
-            choco install $i --limit-output --ignore-checksum
-            choco pin add -n="$i"
-            Write-Debug "Done installing $i from chocolatey"
+        if(Get-Command "choco" -errorAction SilentlyContinue){
+            choco feature enable -n allowGlobalConfirmation -ErrorAction SilentlyContinue
+            if(Test-Path ".\$Group\install\chocolatey-repository.ini"){
+                Write-Debug "Removing default repository and loading new repositories from file"
+                choco source remove -n=chocolatey
+                $sources = Get-IniContent -FilePath ".\$Group\install\chocolatey-repository.ini" -IgnoreComments
+                foreach($source in $sources.Keys){
+                    $splatter = $sources[$source]
+                    choco source add --name $source @splatter
+                }
+                Write-Debug "Done removing default repository and loading new repositories from file"
+            }
+            Write-Debug "Installing from chocolatey"
+            foreach($i in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"})){
+                Write-Debug "Installing $i from chocolatey"
+                choco install $i --limit-output --ignore-checksum
+                choco pin add -n="$i"
+                Write-Debug "Done installing $i from chocolatey"
+            }
+        }
+        else{
+            Write-Debug "Chocolatey not installed, not installing packages"
         }
         Write-Debug "Done installing from chocolatey"
     }
