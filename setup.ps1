@@ -1,8 +1,9 @@
 . .\functions.ps1
 
 
-function Setup-FileAssociations($Associations){
+function Setup-FileAssociations($Group = "default"){
     Write-Host "Setting up file associations"
+    $Associations = Get-IniContent -FilePath ".\$Group\settings\associations.ini" -IgnoreComments
     foreach($Extension in $Associations.Keys){
         Write-Debug "Creating association $($Associations[$Extension]) for file type $Extension"
         Create-Association $Extension $Associations[$Extension]
@@ -112,21 +113,6 @@ function Create-Symlinks($Group = "default"){
     Write-Host "Done creating Symlinks"
 }
 
-function Set-OptionalFeatures($Features){
-    Write-Host "Setting optional features"
-    foreach($Feature in $Features.Keys){
-        Write-Debug "Feature $Feature with targetstate $($Features[$Feature])"
-        if($Features[$Feature] -eq "enable"){
-            Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Disabled"} | Enable-WindowsOptionalFeature -Online -NoRestart
-        }
-        else{
-            Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Enabled"} | Disable-WindowsOptionalFeature -Online -NoRestart
-        }
-        Write-Debug "Done with feature $Feature with new state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
-    }
-    Write-Host "Done setting optional features"
-}
-
 function Setup-Hosts($Group = "default"){
     Write-Host "Setting up hosts file"
     if(Test-Path ".\$Group\hosts\from-file.txt"){
@@ -140,7 +126,7 @@ function Setup-Hosts($Group = "default"){
 
     if(Test-Path ".\$Group\hosts\from-url.txt"){
         Write-Debug "Adding hosts from url"
-        foreach($Line in (Get-Content -Path ".\$Group\hosts\from-url.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($Line in (Get-Content -Path ".\$Group\hosts\from-url.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Debug "Loading hosts from $Line"
             Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Invoke-WebRequest -URI $Line -UseBasicParsing).Content
             Write-Debug "Done loading hosts from $Line"
@@ -153,21 +139,10 @@ function Setup-Hosts($Group = "default"){
     Write-Host "Done setting up hosts file"
 }
 
-function Import-GPO($Group = "default"){
-    if(Test-Path ".\$Group\settings\gpedit.txt"){
-        Write-Host "Importing GPO from file"
-        Import-GPO -BackupGPOName "Test-GPO" -Path ".\$Group\settings\gpedit.txt"
-        Write-Host "Done importing GPO from file"
-    }
-    else{
-        Write-Host "No gpedit file found"
-    }
-}
-
 function Setup-Quickaccess($Group = "default"){
     if(Test-Path ".\$Group\quickaccess\folders.txt"){
         Write-Host "Setting up quickaccess"
-        foreach($Folder in (Get-Content ".\$Group\quickaccess\folders.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($Folder in (Get-Content ".\$Group\quickaccess\folders.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Debug "Adding $Folder to quickaccess"
             (New-Object -com shell.application).Namespace($Folder).Self.InvokeVerb("pintohome")
             Write-Debug "Done adding $Folder to quickaccess"
@@ -177,16 +152,6 @@ function Setup-Quickaccess($Group = "default"){
     else{
         Write-Host "No quickaccess file found"
     }
-}
-
-function Import-ScheduledTasks($Group = "default"){
-    Write-Host "Importing scheduled tasks"
-    foreach($Task in Get-Childitem ".\$Group\scheduledTasks\*.xml"){
-        Write-Debug "Adding task $Task"
-        Register-ScheduledTask -Xml ".\$Group\ScheduledTasks\$Task" -TaskName $Task
-        Write-Debug "Done adding task $Task"
-    }
-    Write-Host "Done importing scheduled tasks"
 }
 
 function Install-Programs($Group = "default"){
@@ -199,11 +164,11 @@ function Install-Programs($Group = "default"){
 
     if(Test-Path ".\$Group\install\from-url.txt"){
         Write-Debug "Installing from url"
-        foreach($URL in (Get-Content ".\$Group\install\from-url.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($URL in (Get-Content ".\$Group\install\from-url.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Debug "Installing $URL from url"
             $Index++
             (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
-            Start-Process "$($Env:TEMP)\$Index.exe" | Out-Null
+            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" | Out-Null
             Write-Debug "Done installing $URL from url"
         }
         Write-Debug "Done installing from url"
@@ -213,26 +178,41 @@ function Install-Programs($Group = "default"){
     }
 
     if(Test-Path ".\$Group\install\from-chocolatey.txt"){
-        Write-Debug "Installing chocolatey"
-        Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
-        choco feature enable -n allowGlobalConfirmation
-        Write-Debug "Done installing chocolatey"
-        if(Test-Path ".\$Group\install\chocolatey-repository.ini"){
-            Write-Debug "Removing default repository and loading new repositories from file"
-            choco source remove -n=chocolatey
-            $Sources = Get-IniContent -FilePath ".\$Group\install\chocolatey-repository.ini" -IgnoreComments
-            foreach($Source in $Sources.Keys){
-                $Splatter = $Sources[$Source]
-                choco source add --name $Source @Splatter
+        if(!(Get-Command "choco" -errorAction SilentlyContinue)){
+            Write-Debug "Installing chocolatey"
+            $ChocolateyJob = Start-Job {
+                Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
             }
-            Write-Debug "Done removing default repository and loading new repositories from file"
+            if($ChocolateyJob | Wait-Job -Timeout 120){
+                Write-Debug "Done installing chocolatey"
+            }
+            else{
+                Stop-Job $ChocolateyJob
+                Write-Debug "Timeout while installing chocolatey, skipping..."
+            }
         }
-        Write-Debug "Installing from chocolatey"
-        foreach($Install in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";.*"})){
-            Write-Debug "Installing $Install from chocolatey"
-            choco install $Install --limit-output --ignore-checksum
-            choco pin add -n="$Install"
-            Write-Debug "Done installing $Install from chocolatey"
+        if(Get-Command "choco" -errorAction SilentlyContinue){
+            choco feature enable -n allowGlobalConfirmation -ErrorAction SilentlyContinue
+            if(Test-Path ".\$Group\install\chocolatey-repository.ini"){
+                Write-Debug "Removing default repository and loading new repositories from file"
+                choco source remove -n=chocolatey
+                $Sources = Get-IniContent -FilePath ".\$Group\install\chocolatey-repository.ini" -IgnoreComments
+                foreach($Source in $Sources.Keys){
+                    $Splatter = $Sources[$Source]
+                    choco source add --name $Source @Splatter
+                }
+                Write-Debug "Done removing default repository and loading new repositories from file"
+            }
+            Write-Debug "Installing from chocolatey"
+            foreach($Install in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"})){
+                Write-Debug "Installing $Install from chocolatey"
+                choco install $Install --limit-output --ignore-checksum
+                choco pin add -n="$Install"
+                Write-Debug "Done installing $Install from chocolatey"
+            }
+        }
+        else{
+            Write-Debug "Chocolatey not installed or requires a restart after install, not installing packages"
         }
         Write-Debug "Done installing from chocolatey"
     }
@@ -241,16 +221,33 @@ function Install-Programs($Group = "default"){
     }
 
     if(Test-Path ".\$Group\install\from-winget.txt"){
-        Write-Debug "Installing winget"
-        (New-Object System.Net.WebClient).DownloadFile("https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.7.1", "$($Env:TEMP)\microsoft.ui.xaml.zip")
-        Expand-Archive -Path "$($Env:TEMP)\microsoft.ui.xaml.zip" -DestinationPath "$($Env:PSModulePath.Split(';')[0])\microsoft.ui.xaml\"
-        (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($Env:TEMP)\winget.msixbundle")
-        Add-AppxPackage -Path "$($Env:TEMP)\winget.msixbundle"
-        Write-Debug "Successfully installed winget"
-        foreach($Install in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object {$_ -notlike ";.*"})){
-            Write-Debug "Installing $Install from winget"
-            winget install $Install
-            Write-Debug "Done installing $Install from winget"
+        if(!(Get-Command "winget" -errorAction SilentlyContinue)){
+            Write-Debug "Installing winget"
+            $WingetJob = Start-Job {
+                (New-Object System.Net.WebClient).DownloadFile("https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.7.1", "$($Env:TEMP)\microsoft.ui.xaml.zip")
+                Expand-Archive -Path "$($Env:TEMP)\microsoft.ui.xaml.zip" -DestinationPath "$($Env:PSModulePath.Split(';')[0])\microsoft.ui.xaml\"
+                (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($Env:TEMP)\winget.msixbundle")
+                Add-AppxPackage -Path "$($Env:TEMP)\winget.msixbundle"
+            }
+            if($WingetJob | Wait-Job -Timeout 120){
+                Write-Debug "Done installing winget"
+            }
+            else{
+                Stop-Job $WingetJob
+                Write-Debug "Timout while installing winget, skipping..."
+            }
+        }
+        if(Get-Command "winget" -errorAction SilentlyContinue){
+            Write-Debug "Installing from winget"
+            foreach($Install in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})){
+                Write-Debug "Installing $Install from winget"
+                winget install $Install
+                Write-Debug "Done installing $Install from winget"
+            }
+            Write-Debug "Done installing from winget"
+        }
+        else{
+            Write-Debug "Winget not installed, not installing packages"
         }
         Write-Debug "Done installing from winget"
     }
@@ -262,7 +259,7 @@ function Install-Programs($Group = "default"){
 function Remove-Bloatware($Group = "default"){
     if(Test-Path ".\$Group\install\remove-bloatware.txt"){
         Write-Host "Removing bloatware"
-        foreach($AppxPackage in (Get-Content ".\$Group\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";.*"})){
+        foreach($AppxPackage in (Get-Content ".\$Group\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Debug "Removing $AppxPackage"
             Get-AppxPackage $AppxPackage | Remove-AppxPackage
             Write-Debug "Done removing $AppxPackage"
@@ -327,10 +324,15 @@ function Setup-Powershell($Group = "default"){
     Update-Help
     if(Test-Path ".\$Group\install\powershell-packageprovider.txt"){
         Write-Debug "Installing packageproviders"
-        foreach($PackageProvider in (Get-Content ".\$Group\install\powershell-packageprovider.txt" | Where-Object {$_ -notlike ";.*"})){
-            Write-Debug "Installing packageprovider $PackageProvider"
-            Install-PackageProvider -Name $PackageProvider -Force -Confirm:$False
-            Write-Debug "Done installing packageprovider $PackageProvider"
+        foreach($PackageProvider in (Get-Content ".\$Group\install\powershell-packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
+            if(Get-PackageProvider $PackageProvider -ErrorAction "silentlyContinue"){
+                Write-Debug "PackageProvider $PackageProvider is already installed, skipping..."
+            }
+            else{
+                Write-Debug "Installing packageprovider $PackageProvider"
+                Install-PackageProvider -Name $PackageProvider -Force -Confirm:$False
+                Write-Debug "Done installing packageprovider $PackageProvider"
+            }
         }
         Write-Debug "Done installing packageproviders"
     }
@@ -340,10 +342,15 @@ function Setup-Powershell($Group = "default"){
 
     if(Test-Path ".\$Group\install\powershell-module.txt"){
         Write-Debug "Installing modules"
-        foreach($PowershellModule in (Get-Content ".\$Group\install\powershell-module.txt" | Where-Object {$_ -notlike ";.*"})){
-            Write-Debug "Installing module $PowershellModule"
-            Install-Module -Name $PowershellModule -Force -Confirm:$False
-            Write-Debug "Done installing module $PowershellModule"
+        foreach($PowershellModule in (Get-Content ".\$Group\install\powershell-module.txt" | Where-Object {$_ -notlike ";*"})){
+            if(Get-InstalledModule $PowershellModule -ErrorAction "silentlyContinue"){
+                Write-Debug "Module $PowershellModule is already installed, skipping..."
+            }
+            else{
+                Write-Debug "Installing module $PowershellModule"
+                Install-Module -Name $PowershellModule -Force -Confirm:$False
+                Write-Debug "Done installing module $PowershellModule"
+            }
         }
         Write-Debug "Done installing modules"
     }
@@ -351,17 +358,6 @@ function Setup-Powershell($Group = "default"){
         Write-Host "No powershell-module file found"
     }
     Write-Host "Done setting up Powershell"
-}
-
-function Setup-Taskbar($Group = "default"){
-    if(Test-Path ".\$Group\settings\taskbar.xml"){
-        Write-Host "Setting up taskbar"
-        Import-StartLayout -Layoutpath ".\$Group\settings\taskbar.xml" -Mountpath C:\
-        Write-Host "Done setting up taskbar"
-    }
-    else{
-        Write-Host "No Taskbar file found"
-    }
 }
 
 
@@ -382,18 +378,12 @@ function Start-Setup($Group = "default"){
         if(Test-Path ".\prepend_custom.ps1"){
             & ".\$Group\scripts\prepend_custom.ps1"
         }
-        $IniContent = Get-IniContent -FilePath ".\$Group\settings\settings.ini" -IgnoreComments
-
         Setup-Powershell -Group $Group
         Setup-Partitions -Group $Group
         Load-Registry -Group $Group
-        Set-OptionalFeatures -Features $IniContent["optionalfeatures"]
-        Import-ScheduledTasks -Group $Group
-        Import-GPO -Group $Group
         Create-Symlinks -Group $Group
-        Setup-FileAssociations -Associations $IniContent["associations"]
+        Setup-FileAssociations -Group $Group
         Setup-Hosts -Group $Group
-        Setup-Taskbar -Group $Group
         Setup-Quickaccess -Group $Group
         Remove-Bloatware -Group $Group
         Install-Programs -Group $Group
