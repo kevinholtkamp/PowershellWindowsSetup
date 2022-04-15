@@ -400,8 +400,6 @@ function Start-Setup($Group = "default"){
         Setup-Powershell -Group $Group
         Setup-Partitions -Group $Group
         Load-Registry -Group $Group
-        Set-OptionalFeatures -Features $IniContent["optionalfeatures"]
-        Import-ScheduledTasks -Group $Group
         Import-GPO -Group $Group
         Create-Symlinks -Group $Group
         Setup-FileAssociations -Associations $IniContent["associations"]
