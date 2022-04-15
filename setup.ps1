@@ -1,8 +1,9 @@
 . .\functions.ps1
 
 
-function Setup-FileAssociations($Associations){
+function Setup-FileAssociations($Group = "default"){
     Write-Host "Setting up file associations"
+    $Associations = Get-IniContent -FilePath ".\$Group\settings\associations.ini" -IgnoreComments
     foreach($Extension in $Associations.Keys){
         Write-Debug "Creating association $($Associations[$Extension]) for file type $Extension"
         Create-Association $Extension $Associations[$Extension]
@@ -373,13 +374,11 @@ function Start-Setup($Group = "default"){
         if(Test-Path ".\prepend_custom.ps1"){
             & ".\$Group\scripts\prepend_custom.ps1"
         }
-        $IniContent = Get-IniContent -FilePath ".\$Group\settings\settings.ini" -IgnoreComments
-
         Setup-Powershell -Group $Group
         Setup-Partitions -Group $Group
         Load-Registry -Group $Group
         Create-Symlinks -Group $Group
-        Setup-FileAssociations -Associations $IniContent["associations"]
+        Setup-FileAssociations -Group $Group
         Setup-Hosts -Group $Group
         Setup-Quickaccess -Group $Group
         Remove-Bloatware -Group $Group
