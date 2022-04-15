@@ -134,17 +134,6 @@ function Setup-Hosts($Group = "default"){
     Write-Host "Done setting up hosts file"
 }
 
-function Import-GPO($Group = "default"){
-    if(Test-Path ".\$Group\settings\gpedit.txt"){
-        Write-Host "Importing GPO from file"
-        Import-GPO -BackupGPOName "Test-GPO" -Path ".\$Group\settings\gpedit.txt"
-        Write-Host "Done importing GPO from file"
-    }
-    else{
-        Write-Host "No gpedit file found"
-    }
-}
-
 function Setup-Quickaccess($Group = "default"){
     if(Test-Path ".\$Group\quickaccess\folders.txt"){
         Write-Host "Setting up quickaccess"
@@ -366,17 +355,6 @@ function Setup-Powershell($Group = "default"){
     Write-Host "Done setting up Powershell"
 }
 
-function Setup-Taskbar($Group = "default"){
-    if(Test-Path ".\$Group\settings\taskbar.xml"){
-        Write-Host "Setting up taskbar"
-        Import-StartLayout -Layoutpath ".\$Group\settings\taskbar.xml" -Mountpath C:\
-        Write-Host "Done setting up taskbar"
-    }
-    else{
-        Write-Host "No Taskbar file found"
-    }
-}
-
 
 
 function Start-Setup($Group = "default"){
@@ -400,11 +378,9 @@ function Start-Setup($Group = "default"){
         Setup-Powershell -Group $Group
         Setup-Partitions -Group $Group
         Load-Registry -Group $Group
-        Import-GPO -Group $Group
         Create-Symlinks -Group $Group
         Setup-FileAssociations -Associations $IniContent["associations"]
         Setup-Hosts -Group $Group
-        Setup-Taskbar -Group $Group
         Setup-Quickaccess -Group $Group
         Remove-Bloatware -Group $Group
         Install-Programs -Group $Group
