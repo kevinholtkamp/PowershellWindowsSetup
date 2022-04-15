@@ -108,21 +108,6 @@ function Create-Symlinks($Group = "default"){
     Write-Host "Done creating Symlinks"
 }
 
-function Set-OptionalFeatures($Features){
-    Write-Host "Setting optional features"
-    foreach($Feature in $Features.Keys){
-        Write-Debug "Feature $Feature with targetstate $($Features[$Feature])"
-        if($Features[$Feature] -eq "enable"){
-            Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Disabled"} | Enable-WindowsOptionalFeature -Online -NoRestart
-        }
-        else{
-            Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Enabled"} | Disable-WindowsOptionalFeature -Online -NoRestart
-        }
-        Write-Debug "Done with feature $Feature with new state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
-    }
-    Write-Host "Done setting optional features"
-}
-
 function Setup-Hosts($Group = "default"){
     Write-Host "Setting up hosts file"
     if(Test-Path ".\$Group\hosts\from-file.txt"){
@@ -173,16 +158,6 @@ function Setup-Quickaccess($Group = "default"){
     else{
         Write-Host "No quickaccess file found"
     }
-}
-
-function Import-ScheduledTasks($Group = "default"){
-    Write-Host "Importing scheduled tasks"
-    foreach($Task in Get-Childitem ".\$Group\scheduledTasks\*.xml"){
-        Write-Debug "Adding task $Task"
-        Register-ScheduledTask -Xml ".\$Group\ScheduledTasks\$Task" -TaskName $Task
-        Write-Debug "Done adding task $Task"
-    }
-    Write-Host "Done importing scheduled tasks"
 }
 
 function Install-Programs($Group = "default"){
