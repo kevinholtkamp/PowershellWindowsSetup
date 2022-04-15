@@ -355,6 +355,17 @@ function Setup-Powershell($Group = "default"){
     Write-Host "Done setting up Powershell"
 }
 
+function Setup-Taskbar($Group = "default"){
+    if(Test-Path ".\$Group\settings\taskbar.xml"){
+        Write-Host "Setting up taskbar"
+        Import-StartLayout -Layoutpath ".\$Group\settings\taskbar.xml" -Mountpath C:\
+        Write-Host "Done setting up taskbar"
+    }
+    else{
+        Write-Host "No Taskbar file found"
+    }
+}
+
 
 
 function Start-Setup($Group = "default"){
