@@ -355,6 +355,17 @@ function Setup-Powershell($Group = "default"){
     Write-Host "Done setting up Powershell"
 }
 
+function Import-GPO($Group = "default"){
+    if(Test-Path ".\$Group\settings\gpedit.txt"){
+        Write-Host "Importing GPO from file"
+        Import-GPO -BackupGPOName "Test-GPO" -Path ".\$Group\settings\gpedit.txt"
+        Write-Host "Done importing GPO from file"
+    }
+    else{
+        Write-Host "No gpedit file found"
+    }
+}
+
 
 
 function Start-Setup($Group = "default"){
