@@ -325,6 +325,16 @@ function Setup-Partitions($Group = "default"){
     }
 }
 
+function Import-ScheduledTasks($Group = "default"){
+    Write-Host "Importing scheduled tasks"
+    foreach($Task in Get-Childitem ".\$Group\scheduledTasks\*.xml"){
+        Write-Debug "Adding task $Task"
+        Register-ScheduledTask -Xml ".\$Group\ScheduledTasks\$Task" -TaskName $Task
+        Write-Debug "Done adding task $Task"
+    }
+    Write-Host "Done importing scheduled tasks"
+}
+
 function Setup-Powershell($Group = "default"){
     Write-Host "Setting up Powershell"
     Update-Help
