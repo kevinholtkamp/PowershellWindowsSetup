@@ -199,7 +199,7 @@ function Install-Programs($Group = "default"){
             Write-Debug "Installing $URL from url"
             $Index++
             (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
-            Start-Process "$($Env:TEMP)\$Index.exe" | Out-Null
+            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" | Out-Null
             Write-Debug "Done installing $URL from url"
         }
         Write-Debug "Done installing from url"
@@ -209,26 +209,41 @@ function Install-Programs($Group = "default"){
     }
 
     if(Test-Path ".\$Group\install\from-chocolatey.txt"){
-        Write-Debug "Installing chocolatey"
-        Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
-        choco feature enable -n allowGlobalConfirmation
-        Write-Debug "Done installing chocolatey"
-        if(Test-Path ".\$Group\install\chocolatey-repository.ini"){
-            Write-Debug "Removing default repository and loading new repositories from file"
-            choco source remove -n=chocolatey
-            $Sources = Get-IniContent -FilePath ".\$Group\install\chocolatey-repository.ini" -IgnoreComments
-            foreach($Source in $Sources.Keys){
-                $Splatter = $Sources[$Source]
-                choco source add --name $Source @Splatter
+        if(!(Get-Command "choco" -errorAction SilentlyContinue)){
+            Write-Debug "Installing chocolatey"
+            $ChocolateyJob = Start-Job {
+                Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
             }
-            Write-Debug "Done removing default repository and loading new repositories from file"
+            if($ChocolateyJob | Wait-Job -Timeout 120){
+                Write-Debug "Done installing chocolatey"
+            }
+            else{
+                Stop-Job $ChocolateyJob
+                Write-Debug "Timeout while installing chocolatey, skipping..."
+            }
         }
-        Write-Debug "Installing from chocolatey"
-        foreach($Install in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"})){
-            Write-Debug "Installing $Install from chocolatey"
-            choco install $Install --limit-output --ignore-checksum
-            choco pin add -n="$Install"
-            Write-Debug "Done installing $Install from chocolatey"
+        if(Get-Command "choco" -errorAction SilentlyContinue){
+            choco feature enable -n allowGlobalConfirmation -ErrorAction SilentlyContinue
+            if(Test-Path ".\$Group\install\chocolatey-repository.ini"){
+                Write-Debug "Removing default repository and loading new repositories from file"
+                choco source remove -n=chocolatey
+                $Sources = Get-IniContent -FilePath ".\$Group\install\chocolatey-repository.ini" -IgnoreComments
+                foreach($Source in $Sources.Keys){
+                    $Splatter = $Sources[$Source]
+                    choco source add --name $Source @Splatter
+                }
+                Write-Debug "Done removing default repository and loading new repositories from file"
+            }
+            Write-Debug "Installing from chocolatey"
+            foreach($Install in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"})){
+                Write-Debug "Installing $Install from chocolatey"
+                choco install $Install --limit-output --ignore-checksum
+                choco pin add -n="$Install"
+                Write-Debug "Done installing $Install from chocolatey"
+            }
+        }
+        else{
+            Write-Debug "Chocolatey not installed or requires a restart after install, not installing packages"
         }
         Write-Debug "Done installing from chocolatey"
     }
@@ -238,13 +253,20 @@ function Install-Programs($Group = "default"){
 
     if(Test-Path ".\$Group\install\from-winget.txt"){
         if(!(Get-Command "winget" -errorAction SilentlyContinue)){
-#ToDo winget installation gets stuck
-#            Write-Debug "Installing winget"
-#            (New-Object System.Net.WebClient).DownloadFile("https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.7.1", "$($Env:TEMP)\microsoft.ui.xaml.zip")
-#            Expand-Archive -Path "$($Env:TEMP)\microsoft.ui.xaml.zip" -DestinationPath "$($Env:PSModulePath.Split(';')[0])\microsoft.ui.xaml\"
-#            (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($env:TEMP)\winget.msixbundle")
-#            Add-AppxPackage -Path "$($Env:TEMP)\winget.msixbundle"
-#            Write-Debug "Done installing winget"
+            Write-Debug "Installing winget"
+            $WingetJob = Start-Job {
+                (New-Object System.Net.WebClient).DownloadFile("https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.7.1", "$($Env:TEMP)\microsoft.ui.xaml.zip")
+                Expand-Archive -Path "$($Env:TEMP)\microsoft.ui.xaml.zip" -DestinationPath "$($Env:PSModulePath.Split(';')[0])\microsoft.ui.xaml\"
+                (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($Env:TEMP)\winget.msixbundle")
+                Add-AppxPackage -Path "$($Env:TEMP)\winget.msixbundle"
+            }
+            if($WingetJob | Wait-Job -Timeout 120){
+                Write-Debug "Done installing winget"
+            }
+            else{
+                Stop-Job $WingetJob
+                Write-Debug "Timout while installing winget, skipping..."
+            }
         }
         if(Get-Command "winget" -errorAction SilentlyContinue){
             Write-Debug "Installing from winget"
