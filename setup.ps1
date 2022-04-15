@@ -325,6 +325,21 @@ function Setup-Partitions($Group = "default"){
     }
 }
 
+function Set-OptionalFeatures($Features){
+    Write-Host "Setting optional features"
+    foreach($Feature in $Features.Keys){
+        Write-Debug "Feature $Feature with targetstate $($Features[$Feature])"
+        if($Features[$Feature] -eq "enable"){
+            Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Disabled"} | Enable-WindowsOptionalFeature -Online -NoRestart
+        }
+        else{
+            Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Enabled"} | Disable-WindowsOptionalFeature -Online -NoRestart
+        }
+        Write-Debug "Done with feature $Feature with new state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
+    }
+    Write-Host "Done setting optional features"
+}
+
 function Setup-Powershell($Group = "default"){
     Write-Host "Setting up Powershell"
     Update-Help
