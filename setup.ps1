@@ -320,9 +320,9 @@ function Setup-Partitions($Group = "default"){
 function Setup-Powershell($Group = "default"){
     Write-Host "Setting up Powershell"
     Update-Help -ErrorAction "silentlyContinue"
-    if(Test-Path ".\$Group\install\powershell-packageprovider.txt"){
+    if(Test-Path ".\$Group\powershell\packageprovider.txt"){
         Write-Debug "Installing packageproviders"
-        foreach($PackageProvider in (Get-Content ".\$Group\install\powershell-packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
+        foreach($PackageProvider in (Get-Content ".\$Group\powershell\packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
             if(Get-PackageProvider $PackageProvider -ErrorAction "silentlyContinue"){
                 Write-Debug "PackageProvider $PackageProvider is already installed, skipping..."
             }
@@ -338,9 +338,9 @@ function Setup-Powershell($Group = "default"){
         Write-Host "No powershell-packageprovider file found"
     }
 
-    if(Test-Path ".\$Group\install\powershell-module.txt"){
+    if(Test-Path ".\$Group\powershell\module.txt"){
         Write-Debug "Installing modules"
-        foreach($PowershellModule in (Get-Content ".\$Group\install\powershell-module.txt" | Where-Object {$_ -notlike ";*"})){
+        foreach($PowershellModule in (Get-Content ".\$Group\powershell\module.txt" | Where-Object {$_ -notlike ";*"})){
             if(Get-InstalledModule $PowershellModule -ErrorAction "silentlyContinue"){
                 Write-Debug "Module $PowershellModule is already installed, skipping..."
             }
