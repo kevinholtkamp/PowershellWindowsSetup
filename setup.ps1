@@ -250,6 +250,8 @@ function Install-Programs($Group = "default"){
     else{
         Write-Host "No install from-winget file found"
     }
+
+    Write-Host "Done installing programs"
 }
 
 function Remove-Bloatware($Group = "default"){
@@ -317,7 +319,7 @@ function Setup-Partitions($Group = "default"){
 
 function Setup-Powershell($Group = "default"){
     Write-Host "Setting up Powershell"
-    Update-Help
+    Update-Help -ErrorAction "silentlyContinue"
     if(Test-Path ".\$Group\install\powershell-packageprovider.txt"){
         Write-Debug "Installing packageproviders"
         foreach($PackageProvider in (Get-Content ".\$Group\install\powershell-packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
