@@ -313,17 +313,18 @@ function Setup-Partitions($Group = "default"){
     }
 }
 
-function Set-OptionalFeatures($Features){
+function Set-OptionalFeatures($Group){
     Write-Host "Setting optional features"
-    foreach($Feature in $Features.Keys){
-        Write-Debug "Feature $Feature with targetstate $($Features[$Feature])"
+    $IniContent = Get-IniContent -FilePath ".\$Group\settings\optionalFeatures.ini" -IgnoreComments
+    foreach($Feature in $IniContent["OptionalFeatures"].Keys){
+        Write-Verbose "Feature $Feature with targetstate $($Features[$Feature])"
         if($Features[$Feature] -eq "enable"){
             Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Disabled"} | Enable-WindowsOptionalFeature -Online -NoRestart
         }
         else{
             Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Enabled"} | Disable-WindowsOptionalFeature -Online -NoRestart
         }
-        Write-Debug "Done with feature $Feature with new state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
+        Write-Verbose "Done with feature $Feature with new state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
     }
     Write-Host "Done setting optional features"
 }
@@ -392,6 +393,7 @@ function Start-Setup($Group = "default"){
         Load-Registry -Group $Group
         Create-Symlinks -Group $Group
         Setup-FileAssociations -Group $Group
+        Set-OptionalFeatures -Group $Group
         Setup-Hosts -Group $Group
         Setup-Quickaccess -Group $Group
         Remove-Bloatware -Group $Group
