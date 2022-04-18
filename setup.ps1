@@ -219,13 +219,9 @@ function Install-Programs($Group = "default"){
     if(Test-Path ".\$Group\install\from-winget.txt"){
         if(!(Get-Command "winget" -errorAction SilentlyContinue)){
             Write-Verbose "Installing winget"
-            $WingetJob = Start-Job {
-                (New-Object System.Net.WebClient).DownloadFile("https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.7.1", "$($Env:TEMP)\microsoft.ui.xaml.zip")
-                Expand-Archive -Path "$($Env:TEMP)\microsoft.ui.xaml.zip" -DestinationPath "$($Env:PSModulePath.Split(';')[0])\microsoft.ui.xaml\"
-                (New-Object System.Net.WebClient).DownloadFile("https://github.com/microsoft/winget-cli/releases/download/v1.3.431/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle", "$($Env:TEMP)\winget.msixbundle")
-                Add-AppxPackage -Path "$($Env:TEMP)\winget.msixbundle"
-            }
-            if($WingetJob | Wait-Job -Timeout 120){
+            Start-Process "ms-appinstaller:?source=https://aka.ms/getwinget"
+            $nid = (Get-Process AppInstaller).Id
+            if(Wait-Process -Id $nid -Timeout 120){
                 Write-Verbose "Done installing winget"
             }
             else{
