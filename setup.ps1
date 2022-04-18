@@ -30,7 +30,7 @@ function Create-Symlinks($Group = "default"){
         foreach($LinkPath in $IniContent.Keys){
             Write-Verbose "Creating Symlinks for LinkPath $LinkPath"
             if(!(Test-Path $LinkPath)){
-                New-Item $LinkPath -ItemType Directory
+                New-Item $LinkPath -ItemType Directory -Force
             }
             $Links = $IniContent[$LinkPath]
             foreach($Name in $Links.Keys){
@@ -43,7 +43,7 @@ function Create-Symlinks($Group = "default"){
                             Write-Verbose "Local folder is no Symlink yet"
                             if(!(Test-Path "$LinkPath\$Name")){
                                 Write-Verbose "Does not exist in LinkPath"
-                                New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory"
+                                New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
                                 Write-Verbose "New folder created in LinkPath"
                             }
                             else{
@@ -53,14 +53,14 @@ function Create-Symlinks($Group = "default"){
                             Write-Verbose "Copied to LinkPath sucessfully"
                             Remove-ItemSafely -Path $Path -Recurse -Force
                             Write-Verbose "Removed old folder"
-                            New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name"
+                            New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
                             Write-Verbose "SymLink created sucessfully"
                         }
                         else{
                             Write-Verbose "Local folder is a SymLink already"
                             if(!(Test-Path "$LinkPath\$Name")){
                                 Write-Verbose "But does not exist in LinkPath"
-                                New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory"
+                                New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
                                 Write-Verbose "New folder created in LinkPath"
                             }
                             else{
@@ -74,7 +74,7 @@ function Create-Symlinks($Group = "default"){
                                 Write-Verbose "Everything copied from false target"
                                 Remove-ItemSafely -Path $Path
                                 Write-Verbose "Old symlink removed"
-                                New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name"
+                                New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
                                 Write-Verbose "New Symlink created"
                             }
                             else{
