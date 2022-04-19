@@ -2,31 +2,31 @@
 
 
 function Setup-FileAssociations($Group = "default"){
-    Write-Host "Setting up file associations"
-    $Associations = Get-IniContent -FilePath ".\$Group\settings\associations.ini" -IgnoreComments
-    foreach($Extension in $Associations.Keys){
+    Write-Output "Setting up file associations"
+    $Associations = Get-IniContent -FilePath "$Group\settings\associations.ini" -IgnoreComments
+    foreach($Extension in $Associations["associations"].Keys){
         Write-Verbose "Creating association $($Associations[$Extension]) for file type $Extension"
         Create-Association $Extension $Associations[$Extension]
         Write-Verbose "Done creating association $($Associations[$Extension]) for file type $Extension"
     }
-    Write-Host "Done setting up file associations"
+    Write-Output "Done setting up file associations"
 }
 
 function Load-Registry($Group = "default"){
-    if(Test-Path ".\$Group\settings\registry.reg"){
-        Write-Host "Importing registry file"
-        reg import ".\$Group\settings\registry.reg"
-        Write-Host "Done importing registry file"
+    if(Test-Path "$Group\settings\registry.reg"){
+        Write-Output "Importing registry file"
+        reg import "$Group\settings\registry.reg"
+        Write-Output "Done importing registry file"
     }
     else{
-        Write-Host "Cannot find registry file"
+        Write-Output "Cannot find registry file"
     }
 }
 
 function Create-Symlinks($Group = "default"){
-    Write-Host "Creating Symlinks"
-    if(Test-path ".\$Group\settings\symlinks.ini"){
-        $IniContent = Get-IniContent -FilePath ".\$Group\settings\symlinks.ini" -IgnoreComments
+    Write-Output "Creating Symlinks"
+    if(Test-path "$Group\settings\symlinks.ini"){
+        $IniContent = Get-IniContent -FilePath "$Group\settings\symlinks.ini" -IgnoreComments
         foreach($LinkPath in $IniContent.Keys){
             Write-Verbose "Creating Symlinks for LinkPath $LinkPath"
             if(!(Test-Path $LinkPath)){
@@ -95,34 +95,34 @@ function Create-Symlinks($Group = "default"){
                         New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
                         Write-Verbose "Symlink created successfully"
                     }
-                    Write-Host "No errors occured, applying changes"
+                    Write-Output "No errors occured, applying changes"
                 }
                 catch{
-                    Write-Host "An error occured, rolling back changes"
+                    Write-Output "An error occured, rolling back changes"
                 }
             }
         }
     }
     else{
-        Write-Host "No symlinks.ini file found"
+        Write-Output "No symlinks.ini file found"
     }
-    Write-Host "Done creating Symlinks"
+    Write-Output "Done creating Symlinks"
 }
 
 function Setup-Hosts($Group = "default"){
-    Write-Host "Setting up hosts file"
-    if(Test-Path ".\$Group\hosts\from-file.txt"){
+    Write-Output "Setting up hosts file"
+    if(Test-Path "$Group\hosts\from-file.txt"){
         Write-Verbose "Adding hosts from file"
-        Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Get-Content -Path ".\$Group\hosts\from-file.txt")
+        Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Get-Content -Path "$Group\hosts\from-file.txt")
         Write-Verbose "Done adding hosts from file"
     }
     else{
         Write-Verbose "No host from-file file found"
     }
 
-    if(Test-Path ".\$Group\hosts\from-url.txt"){
+    if(Test-Path "$Group\hosts\from-url.txt"){
         Write-Verbose "Adding hosts from url"
-        foreach($Line in (Get-Content -Path ".\$Group\hosts\from-url.txt" | Where-Object {$_ -notlike ";*"})){
+        foreach($Line in (Get-Content -Path "$Group\hosts\from-url.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Verbose "Loading hosts from $Line"
             Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Invoke-WebRequest -URI $Line -UseBasicParsing).Content
             Write-Verbose "Done loading hosts from $Line"
@@ -132,35 +132,35 @@ function Setup-Hosts($Group = "default"){
     else{
         Write-Verbose "No host from-url file found"
     }
-    Write-Host "Done setting up hosts file"
+    Write-Output "Done setting up hosts file"
 }
 
 function Setup-Quickaccess($Group = "default"){
-    if(Test-Path ".\$Group\quickaccess\folders.txt"){
-        Write-Host "Setting up quickaccess"
-        foreach($Folder in (Get-Content ".\$Group\quickaccess\folders.txt" | Where-Object {$_ -notlike ";*"})){
+    if(Test-Path "$Group\quickaccess\folders.txt"){
+        Write-Output "Setting up quickaccess"
+        foreach($Folder in (Get-Content "$Group\quickaccess\folders.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Verbose "Adding $Folder to quickaccess"
             (New-Object -com shell.application).Namespace($Folder).Self.InvokeVerb("pintohome")
             Write-Verbose "Done adding $Folder to quickaccess"
         }
-        Write-Host "Done setting up quickaccess"
+        Write-Output "Done setting up quickaccess"
     }
     else{
-        Write-Host "No quickaccess file found"
+        Write-Output "No quickaccess file found"
     }
 }
 
 function Install-Programs($Group = "default"){
-    Write-Host "Installing programs"
-    foreach($ExeFile in Get-Childitem ".\$Group\install\*.exe"){
+    Write-Output "Installing programs"
+    foreach($ExeFile in Get-Childitem "$Group\install\*.exe"){
         Write-Verbose "Installing $ExeFile from file"
         & $ExeFile
         Write-Verbose "Done installing $ExeFile from file"
     }
 
-    if(Test-Path ".\$Group\install\from-url.txt"){
+    if(Test-Path "$Group\install\from-url.txt"){
         Write-Verbose "Installing from url"
-        foreach($URL in (Get-Content ".\$Group\install\from-url.txt" | Where-Object {$_ -notlike ";*"})){
+        foreach($URL in (Get-Content "$Group\install\from-url.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Verbose "Installing $URL from url"
             $Index++
             (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
@@ -170,10 +170,10 @@ function Install-Programs($Group = "default"){
         Write-Verbose "Done installing from url"
     }
     else{
-        Write-Host "No install from-url file found"
+        Write-Output "No install from-url file found"
     }
 
-    if(Test-Path ".\$Group\install\from-chocolatey.txt"){
+    if(Test-Path "$Group\install\from-chocolatey.txt"){
         if(!(Get-Command "choco" -errorAction SilentlyContinue)){
             Write-Verbose "Installing chocolatey"
             $ChocolateyJob = Start-Job {
@@ -189,10 +189,10 @@ function Install-Programs($Group = "default"){
         }
         if(Get-Command "choco" -errorAction SilentlyContinue){
             choco feature enable -n allowGlobalConfirmation -ErrorAction SilentlyContinue
-            if(Test-Path ".\$Group\install\chocolatey-repository.ini"){
+            if(Test-Path "$Group\install\chocolatey-repository.ini"){
                 Write-Verbose "Removing default repository and loading new repositories from file"
                 choco source remove -n=chocolatey
-                $Sources = Get-IniContent -FilePath ".\$Group\install\chocolatey-repository.ini" -IgnoreComments
+                $Sources = Get-IniContent -FilePath "$Group\install\chocolatey-repository.ini" -IgnoreComments
                 foreach($Source in $Sources.Keys){
                     $Splatter = $Sources[$Source]
                     choco source add --name $Source @Splatter
@@ -200,7 +200,7 @@ function Install-Programs($Group = "default"){
                 Write-Verbose "Done removing default repository and loading new repositories from file"
             }
             Write-Verbose "Installing from chocolatey"
-            foreach($Install in (Get-Content ".\$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"})){
+            foreach($Install in (Get-Content "$Group\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"})){
                 Write-Verbose "Installing $Install from chocolatey"
                 choco install $Install --limit-output --ignore-checksum
                 choco pin add -n="$Install"
@@ -213,10 +213,10 @@ function Install-Programs($Group = "default"){
         Write-Verbose "Done installing from chocolatey"
     }
     else{
-        Write-Host "No install from-chocolatey file found"
+        Write-Output "No install from-chocolatey file found"
     }
 
-    if(Test-Path ".\$Group\install\from-winget.txt"){
+    if(Test-Path "$Group\install\from-winget.txt"){
         if(!(Get-Command "winget" -errorAction SilentlyContinue)){
             Write-Verbose "Installing winget"
             Start-Process "ms-appinstaller:?source=https://aka.ms/getwinget"
@@ -225,13 +225,12 @@ function Install-Programs($Group = "default"){
                 Write-Verbose "Done installing winget"
             }
             else{
-                Stop-Job $WingetJob
-                Write-Verbose "Timout while installing winget, skipping..."
+                Write-Output "Timout while installing winget, skipping..."
             }
         }
         if(Get-Command "winget" -errorAction SilentlyContinue){
             Write-Verbose "Installing from winget"
-            foreach($Install in (Get-Content ".\$Group\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})){
+            foreach($Install in (Get-Content "$Group\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})){
                 Write-Verbose "Installing $Install from winget"
                 winget install $Install
                 Write-Verbose "Done installing $Install from winget"
@@ -244,31 +243,31 @@ function Install-Programs($Group = "default"){
         Write-Verbose "Done installing from winget"
     }
     else{
-        Write-Host "No install from-winget file found"
+        Write-Output "No install from-winget file found"
     }
 
-    Write-Host "Done installing programs"
+    Write-Output "Done installing programs"
 }
 
 function Remove-Bloatware($Group = "default"){
-    if(Test-Path ".\$Group\install\remove-bloatware.txt"){
-        Write-Host "Removing bloatware"
-        foreach($AppxPackage in (Get-Content ".\$Group\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";*"})){
+    if(Test-Path "$Group\install\remove-bloatware.txt"){
+        Write-Output "Removing bloatware"
+        foreach($AppxPackage in (Get-Content "$Group\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Verbose "Removing $AppxPackage"
             Get-AppxPackage $AppxPackage | Remove-AppxPackage
             Write-Verbose "Done removing $AppxPackage"
         }
-        Write-Host "Done removing bloatware"
+        Write-Output "Done removing bloatware"
     }
     else{
-        Write-Host "No remove-bloatware file found"
+        Write-Output "No remove-bloatware file found"
     }
 }
 
 function Setup-Partitions($Group = "default"){
-    Write-Host "Setting up partitions"
-    if(Test-Path ".\$Group\settings\partitions.ini"){
-        $Partitions = Get-IniContent -FilePath ".\$Group\settings\partitions.ini" -IgnoreComments
+    Write-Output "Setting up partitions"
+    if(Test-Path "$Group\settings\partitions.ini"){
+        $Partitions = Get-IniContent -FilePath "$Group\settings\partitions.ini" -IgnoreComments
         #Find all driveletters that are wanted
         $UnusableDriveLetters = @()
         foreach($Drive in $Partitions.Keys){
@@ -306,19 +305,19 @@ function Setup-Partitions($Group = "default"){
                 Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
             }
         }
-        Write-Host "Done setting up partitions"
+        Write-Output "Done setting up partitions"
     }
     else{
-        Write-Host "No partition file found"
+        Write-Output "No partition file found"
     }
 }
 
 function Setup-Powershell($Group = "default"){
-    Write-Host "Setting up Powershell"
+    Write-Output "Setting up Powershell"
     Update-Help -ErrorAction "silentlyContinue"
-    if(Test-Path ".\$Group\powershell\packageprovider.txt"){
+    if(Test-Path "$Group\powershell\packageprovider.txt"){
         Write-Verbose "Installing packageproviders"
-        foreach($PackageProvider in (Get-Content ".\$Group\powershell\packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
+        foreach($PackageProvider in (Get-Content "$Group\powershell\packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
             if(Get-PackageProvider $PackageProvider -ErrorAction "silentlyContinue"){
                 Write-Verbose "PackageProvider $PackageProvider is already installed, skipping..."
             }
@@ -331,12 +330,12 @@ function Setup-Powershell($Group = "default"){
         Write-Verbose "Done installing packageproviders"
     }
     else{
-        Write-Host "No powershell-packageprovider file found"
+        Write-Output "No powershell-packageprovider file found"
     }
 
-    if(Test-Path ".\$Group\powershell\module.txt"){
+    if(Test-Path "$Group\powershell\module.txt"){
         Write-Verbose "Installing modules"
-        foreach($PowershellModule in (Get-Content ".\$Group\powershell\module.txt" | Where-Object {$_ -notlike ";*"})){
+        foreach($PowershellModule in (Get-Content "$Group\powershell\module.txt" | Where-Object {$_ -notlike ";*"})){
             if(Get-InstalledModule $PowershellModule -ErrorAction "silentlyContinue"){
                 Write-Verbose "Module $PowershellModule is already installed, skipping..."
             }
@@ -349,9 +348,9 @@ function Setup-Powershell($Group = "default"){
         Write-Verbose "Done installing modules"
     }
     else{
-        Write-Host "No powershell-module file found"
+        Write-Output "No powershell-module file found"
     }
-    Write-Host "Done setting up Powershell"
+    Write-Output "Done setting up Powershell"
 }
 
 
