@@ -28,3 +28,6 @@ Function Create-Association($Extension, $Executable){
     }
     cmd /c "ftype $Name=`"$Executable`" `"%1`""
 }
+Function Write-VerboseOutput($Output){
+    Write-Output "Verbose: $Output"
+}
