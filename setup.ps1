@@ -219,9 +219,7 @@ function Install-Programs($Group = "default"){
     if(Test-Path "$Group\install\from-winget.txt"){
         if(!(Get-Command "winget" -errorAction SilentlyContinue)){
             Write-VerboseOutput "Installing winget"
-            Start-Process "ms-appinstaller:?source=https://aka.ms/getwinget"
-            $nid = (Get-Process AppInstaller).Id
-            if(Wait-Process -Id $nid -Timeout 120){
+            if(Start-Process "ms-appinstaller:?source=https://aka.ms/getwinget" -ErrorAction SilentlyContinue | Wait-Process -Timeout 120 -ErrorAction SilentlyContinue){
                 Write-VerboseOutput "Done installing winget"
             }
             else{
