@@ -355,47 +355,54 @@ function Setup-Powershell($Group = "default"){
 
 
 
-function Start-Setup($Group = "default"){
-    Start-Transcript "$Home\Desktop\$(Get-Date -Format "yyyy_MM_dd")_setup.transcript"
+function Start-Setup(){
+    [Cmdletbinding()]
+    param([String] $Group = "default")
 
-    if(Test-Path ".\$Group\"){
-        Write-Host "Creating Windows Checkpoint"
-        Checkpoint-Computer -Description "Before Start-Setup at $(Get-Date)"
-        Read-Host "Checkpoint created. Press enter to continue"
+    Workflow Setup{
+        [Cmdletbinding()]
+        param([String] $Group)
+        #Start-Transcript "$Home\Desktop\$(Get-Date -Format "yyyy_MM_dd")_setup.transcript"
 
-        Write-Host "Stopping Windows update service"
-        net stop wuauserv | Write-Host
-        Read-Host "Windows update service stopped. Press enter to continue"
+        if(Test-Path "$Group\"){
+            Write-Output "Creating Windows Checkpoint"
+            Checkpoint-Computer -Description "Before Start-Setup at $(Get-Date)"
+            Write-Output "Checkpoint created. Press enter to continue"
+
+            Write-Output "Stopping Windows update service"
+            net stop wuauserv | Write-Output
+            Write-Output "Windows update service stopped. Press enter to continue"
+
+            if(Test-Path ".\prepend_custom.ps1"){
+                #& "$Group\scripts\prepend_custom.ps1"
+            }
+            Setup-Powershell -Group $Group
+            Setup-Partitions -Group $Group
+            Load-Registry -Group $Group
+            Create-Symlinks -Group $Group
+            #Setup-FileAssociations -Group $Group
+            Setup-Hosts -Group $Group
+            Setup-Quickaccess -Group $Group
+            Remove-Bloatware -Group $Group
+            Install-Programs -Group $Group
+            if(Test-Path ".\append_custom.ps1"){
+                #& "$Group\scripts\append_custom.ps1"
+            }
 
 
-        if(Test-Path ".\prepend_custom.ps1"){
-            & ".\$Group\scripts\prepend_custom.ps1"
+            Write-Output "Creating Windows Checkpoint"
+            Checkpoint-Computer -Description "After Start-Setup at $(Get-Date)"
+            Write-Output "Checkpoint created. Press enter to continue"
+
+            Write-Output "Starting Windows update service"
+            net start wuauserv | Write-Output
+            Write-Output "Windows update service started. Press enter to continue"
         }
-        Setup-Powershell -Group $Group
-        Setup-Partitions -Group $Group
-        Load-Registry -Group $Group
-        Create-Symlinks -Group $Group
-        Setup-FileAssociations -Group $Group
-        Setup-Hosts -Group $Group
-        Setup-Quickaccess -Group $Group
-        Remove-Bloatware -Group $Group
-        Install-Programs -Group $Group
-        if(Test-Path ".\append_custom.ps1"){
-            & ".\$Group\scripts\append_custom.ps1"
+        else{
+            Write-Output "No group $Group found, terminating execution."
         }
 
-
-        Write-Host "Creating Windows Checkpoint"
-        Checkpoint-Computer -Description "After Start-Setup at $(Get-Date)"
-        Read-Host "Checkpoint created. Press enter to continue"
-
-        Write-Host "Starting Windows update service"
-        net start wuauserv | Write-Host
-        Write-Host "Windows update service started. Press enter to continue"
+        #Stop-Transcript
     }
-    else{
-        Write-Host "No group $Group found, terminating execution."
-    }
-
-    Stop-Transcript
+    Setup -Group "$(Get-Location)\$Group" -AsJob
 }
