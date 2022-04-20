@@ -28,6 +28,10 @@ Function Create-Association($Extension, $Executable){
     }
     cmd /c "ftype $Name=`"$Executable`" `"%1`""
 }
-Function Write-VerboseOutput($Output){
-    Write-Output "Verbose: $Output"
+Function Write-VerboseOutput(){
+    [Cmdletbinding()]
+    param([Parameter(ValueFromPipeline)][String] $Output)
+    if($VerbosePreference -eq "Continue"){
+        Write-Output "Verbose: $Output"
+    }
 }
