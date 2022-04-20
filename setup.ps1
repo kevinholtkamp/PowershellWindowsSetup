@@ -314,7 +314,7 @@ function Setup-Partitions($Group = "default"){
 
 function Setup-Powershell($Group = "default"){
     Write-Output "Setting up Powershell"
-    Update-Help -ErrorAction "silentlyContinue"
+    #Update-Help -ErrorAction "silentlyContinue"
     if(Test-Path "$Group\powershell\packageprovider.txt"){
         Write-VerboseOutput "Installing packageproviders"
         foreach($PackageProvider in (Get-Content "$Group\powershell\packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
