@@ -9,14 +9,16 @@ Describe "Setup-Hosts"{
     Context "Setup-Hosts"{
         BeforeAll{
             $DebugPreference = "continue"
+            $Env:WinDir = "TestDrive:\Windows"
+            New-Item "$($Env:WinDir)\system32\Drivers\etc\hosts" -ItemType File -Force
             Setup-Hosts -Group $TestGroup
             $DebugPreference = "silentlycontinue"
         }
         It "Importing hosts from file"{
-            Select-String -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Pattern "fritz.box" | Should -not -BeNullOrEmpty
+            Select-String -Path "TestDrive:\Windows\system32\Drivers\etc\hosts" -Pattern "fritz.box" | Should -not -BeNullOrEmpty
         }
         It "Importing hosts from url"{
-            Select-String -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Pattern "Smart TV list" | Should -not -BeNullOrEmpty
+            Select-String -Path "TestDrive:\Windows\system32\Drivers\etc\hosts" -Pattern "Smart TV list" | Should -not -BeNullOrEmpty
         }
     }
 }
