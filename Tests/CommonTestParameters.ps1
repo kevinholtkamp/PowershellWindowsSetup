@@ -1,12 +1,5 @@
 Set-Variable -Name "TestGroup" -Value "Tests\testGroup" -Scope Global
 
-if(!(Get-InstalledModule PsIni -ErrorAction "silentlyContinue")){
-    Install-Module -Name PsIni -Force -Confirm:$false
-}
-if(!(Get-InstalledModule Recycle -ErrorAction "silentlyContinue")){
-    Install-Module -Name Recycle -Force -Confirm:$false
-}
-
 Mock -CommandName Write-Host -MockWith {}
 Mock -CommandName Write-Debug -MockWith {}
 Mock -CommandName Write-Verbose -MockWith {}
