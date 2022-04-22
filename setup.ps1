@@ -267,44 +267,51 @@ function Setup-Partitions($Group = "default"){
     Write-Host "Setting up partitions"
     if(Test-Path ".\$Group\settings\partitions.ini"){
         $Partitions = Get-IniContent -FilePath ".\$Group\settings\partitions.ini" -IgnoreComments
-        #Find all driveletters that are wanted
-        $UnusableDriveLetters = @()
-        foreach($Drive in $Partitions.Keys){
-            foreach($Partition in $Partitions["$Drive"].Keys){
-                $UnusableDriveLetters += $Partitions["$Drive"]["$Partition"]
+        if($null -ne $Partitions){
+            #Find all driveletters that are wanted
+            $UnusableDriveLetters = @()
+            foreach($Drive in $Partitions.Keys){
+                foreach($Partition in $Partitions["$Drive"].Keys){
+                    $UnusableDriveLetters += $Partitions["$Drive"]["$Partition"]
+                }
             }
-        }
-        Write-Verbose "Found all wanted driveletters: $UnusableDriveLetters"
-        #Find all drive letters that are currently in use
-        $UnusableDriveLetters += (Get-PSDrive).Root -match "^[A-Z]:\\"
-        Write-Verbose "Found all wanted and currently used driveletters: $UnusableDriveLetters"
-        #Find all free usable drive letters (Not currently used and not wanted)
-        65..90|foreach-object{
-            if(-not $UnusableDriveLetters.Contains("$([char]$_):\")){
-                $UsableDriveLetters += [char]$_
+            Write-Verbose "Found all wanted driveletters: $UnusableDriveLetters"
+            #Find all drive letters that are currently in use
+            $UnusableDriveLetters += ((Get-PSDrive).Root -match "^[A-Z]:\\").Substring(0, 1)
+            Write-Verbose "Found all wanted and currently used driveletters: $UnusableDriveLetters"
+            #Find all free usable drive letters (Not currently used and not wanted)
+            65..90|foreach-object{
+                if(-not $UnusableDriveLetters.Contains("$([char]$_)")){
+                    $UsableDriveLetters += [char]$_
+                }
             }
-        }
-        $UsableDriveLetterIndex = 0
-        Write-Verbose "Found all freely usable drive letters (Not used  & not wanted): $UsableDriveLetters"
-        #Temporarily assign all partitions to one of those letters
-        foreach($Drive in $Partitions.Keys){
-            foreach($Partition in $Partitions["$Drive"].Keys){
-                Write-Verbose "Assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
-                Get-Disk | Where-Object SerialNumber -EQ "$Drive" | Get-Partition | Where-Object PartitionNumber -EQ $Partition | Set-Partition -NewDriveLetter $UsableDriveLetters[$UsableDriveLetterIndex]
-                $UsableDriveLetterIndex++
-                Write-Verbose "Done assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
+            $UsableDriveLetterIndex = 0
+            Write-Verbose "Found all freely usable drive letters (Not used  & not wanted): $UsableDriveLetters"
+            #Temporarily assign all partitions to one of those letters
+            foreach($Drive in $Partitions.Keys){
+                foreach($Partition in $Partitions["$Drive"].Keys){
+                    Write-Verbose "Assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
+                    Get-Disk | Where-Object SerialNumber -EQ "$Drive" | Get-Partition | Where-Object PartitionNumber -EQ $Partition | Set-Partition -NewDriveLetter $UsableDriveLetters[$UsableDriveLetterIndex]
+                    Write-Verbose "Done assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
+                    $UsableDriveLetterIndex++
+                }
             }
-        }
-        Write-Verbose "All partitions set to temporary driveletters"
-        #Assign all partitions to their wanted letter
-        foreach($Drive in $Partitions.Keys){
-            foreach($Partition in $Partitions["$Drive"].Keys){
-                Write-Verbose "Assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
-                Get-Disk | Where-Object SerialNumber -EQ "$Drive" | Get-Partition | Where-Object PartitionNumber -EQ $Partition | Set-Partition -NewDriveLetter $Partitions["$Drive"]["$Partition"]
-                Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
+            Write-Verbose "All partitions set to temporary driveletters"
+            #Assign all partitions to their wanted letter
+            foreach($Drive in $Partitions.Keys){
+                foreach($Partition in $Partitions["$Drive"].Keys){
+                    Write-Verbose "Assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
+                    $Disk = Get-Disk | Where-Object SerialNumber -EQ "$Drive"
+                    $Partition = Get-Partition -Disk $Disk | Where-Object PartitionNumber -EQ $Partition
+                    Set-Partition -InputObject $Partition -NewDriveLetter $Partitions["$Drive"]["$Partition"]
+                    Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
+                }
             }
+            Write-Host "Done setting up partitions"
         }
-        Write-Host "Done setting up partitions"
+        else{
+            Write-Host "No partition settings in partition file"
+        }
     }
     else{
         Write-Host "No partition file found"
