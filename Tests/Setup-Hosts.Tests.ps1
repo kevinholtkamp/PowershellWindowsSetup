@@ -12,6 +12,7 @@ Describe "Setup-Hosts"{
             $Env:WinDir = "TestDrive:\Windows"
             New-Item "$($Env:WinDir)\system32\Drivers\etc\hosts" -ItemType File -Force
             Setup-Hosts -Group $TestGroup
+            $Env:WinDir = "C:\Windows"
             $DebugPreference = "silentlycontinue"
         }
         It "Importing hosts from file"{
