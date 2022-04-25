@@ -1,3 +1,5 @@
+$ProgressPreference = "silentlycontinue"
+
 Write-Host "Installing NuGet and Pester" -ForegroundColor Green
 Install-PackageProvider -Name NuGet -Force -Confirm:$false
 if(!(Get-InstalledModule Pester -ErrorAction "silentlyContinue")){
@@ -11,7 +13,7 @@ if(!(Get-InstalledModule Recycle -ErrorAction "silentlyContinue")){
 }
 
 Write-Host "Invoking Pester" -ForegroundColor Green
-Invoke-Pester ".\Tests\" -PassThru -Output Detailed
+Invoke-Pester ".\Tests\" -PassThru
 
 Write-Host "Tests finnished" -ForegroundColor Green
 Read-Host
