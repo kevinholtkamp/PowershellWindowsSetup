@@ -23,7 +23,6 @@ Describe "Setup-Partitions"{
             Mock Set-Partition {}
         }
         It "Set mock partitions"{
-            $VerbosePreference = "continue"
             Setup-Partitions -Group $TestGroup
             Should -Invoke -CommandName Set-Partition -Times 4 -Exactly
 #            Should -Invoke -CommandName Set-Partition -Times 1 -Exactly -ParameterFilter { $InputObject.PartitionNumber -eq 1 -and $NewDriveLetter -eq "D" }
@@ -34,7 +33,6 @@ Describe "Setup-Partitions"{
 #            Assert-MockCalled Set-Partition -Times 1 -Exactly -ParameterFilter { $NewDriveLetter -eq "E" }
 #            Assert-MockCalled Set-Partition -Times 1 -Exactly -ParameterFilter { $NewDriveLetter -eq "A" }
 #            Assert-MockCalled Set-Partition -Times 1 -Exactly -ParameterFilter { $NewDriveLetter -eq "B" }
-            $VerbosePreference = "silentlycontinue"
         }
     }
 }

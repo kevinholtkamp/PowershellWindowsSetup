@@ -8,12 +8,10 @@ BeforeAll {
 Describe "Setup-Hosts"{
     Context "Setup-Hosts"{
         BeforeAll{
-            $DebugPreference = "continue"
             $Env:WinDir = "TestDrive:\Windows"
             New-Item "$($Env:WinDir)\system32\Drivers\etc\hosts" -ItemType File -Force
             Setup-Hosts -Group $TestGroup
             $Env:WinDir = "C:\Windows"
-            $DebugPreference = "silentlycontinue"
         }
         It "Importing hosts from file"{
             Select-String -Path "TestDrive:\Windows\system32\Drivers\etc\hosts" -Pattern "fritz.box" | Should -not -BeNullOrEmpty

@@ -8,9 +8,7 @@ BeforeAll {
 Describe "Remove-Bloatware"{
     Context "Remove-Bloatware"{
         BeforeAll{
-            $DebugPreference = "continue"
             Remove-Bloatware -Group $TestGroup
-            $DebugPreference = "silentlycontinue"
         }
         It "Removing bloatware *candy*"{
             Get-AppxPackage *candy* | Should -Be $null
