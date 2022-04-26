@@ -66,7 +66,7 @@ function Create-Symlinks($Group = "default"){
                             else{
                                 Write-Verbose "Exists in LinkPath"
                             }
-                            if((Get-SymlinkTarget $Path) -ne "$LinkPath\$Name"){
+                            if(Compare-Paths -First $Path -Second "$LinkPath\$Name"){
                                 Write-Verbose "Symlink exists, but has a wrong target"
                                 Write-Verbose "Target: $LinkPath\$Name"
                                 Write-Verbose "Wanted Target: $(Get-SymlinkTarget $Path)"
