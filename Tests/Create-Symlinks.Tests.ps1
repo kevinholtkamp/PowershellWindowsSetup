@@ -6,23 +6,40 @@ BeforeAll {
 }
 
 Describe "Create-Symlinks"{
-    Context "Create-Symlinks"{
-        BeforeAll{
-            $DebugPreference = "continue"
-            Create-Symlinks -Group $TestGroup
-            $DebugPreference = "silentlycontinue"
+    BeforeAll{
+        New-Item "TestDrive:\Original\Existing\Existing" -ItemType "directory" -Force
+        New-Item "TestDrive:\Original\Existing\New" -ItemType "directory" -Force
+        New-Item "TestDrive:\Links\Existing\Existing" -ItemType "directory" -Force
+        New-Item "TestDrive:\Links\New\Existing" -ItemType "directory" -Force
+        Set-Content "TestDrive:\Links\New\Existing\File.txt" "TestFileContentLinks" -Force
+        Set-Content "TestDrive:\Links\Existing\Existing\File.txt" "TestFileContentLinks" -Force
+        Set-Content "TestDrive:\Original\Existing\Existing\File.txt" "TestFileContentOriginal" -Force
+        Set-Content "TestDrive:\Original\Existing\New\File.txt" "TestFileContentOriginal" -Force
+
+        Create-Symlinks -Group $TestGroup
+    }
+    Context "Tests"{
+        It "Nothing Exists"{
+            Test-Symlink "TestDrive:\Original\New\New" | Should -Be $true
+            "TestDrive:\Links\New\New" | Should -Exist
         }
-        It "Steam config symlink"{
-            Test-Symlink "TestDrive:\Program Files (x86)\Steam\config" | Should -Be $true
-            "TestDrive:\Links\Settings\Steam\config" | Should -Exist
+        It "Existing Original folder"{
+            Test-Symlink "TestDrive:\Original\Existing\New" | Should -Be $true
+            "TestDrive:\Links\Existing\New" | Should -Exist
+            "TestDrive:\Links\Existing\New\File.txt" | Should -FileContentMatch "TestFileContentOriginal"
+            "TestDrive:\Original\Existing\New\File.txt" | Should -FileContentMatch "TestFileContentOriginal"
         }
-        It "MSI Afterburner symlink"{
-            Test-Symlink "TestDrive:\Program Files (x86)\MSI Afterburner\Profiles" | Should -Be $true
-            "TestDrive:\Links\Settings\MSIAfterburner" | Should -Exist
+        It "Existing LinkPath"{
+            Test-Symlink "TestDrive:\Original\New\Existing" | Should -Be $true
+            "TestDrive:\Links\New\Existing" | Should -Exist
+            "TestDrive:\Links\New\Existing\File.txt" | Should -FileContentMatch "TestFileContentLinks"
+            "TestDrive:\Original\New\Existing\File.txt" | Should -FileContentMatch "TestFileContentLinks"
         }
-        It "Ubisoft game launcher symlink"{
-            Test-Symlink "TestDrive:\Program Files (x86)\Ubisoft\Ubisoft Game Launcher\savegames" | Should -Be $true
-            "TestDrive:\Links\Games\Ubisoft Game Launcher\savegames" | Should -Exist
+        It "Both existing"{
+            Test-Symlink "TestDrive:\Original\Existing\Existing" | Should -Be $true
+            "TestDrive:\Links\Existing\Existing" | Should -Exist
+            "TestDrive:\Links\Existing\Existing\File.txt" | Should -FileContentMatch "TestFileContentOriginal"
+            "TestDrive:\Original\Existing\Existing\File.txt" | Should -FileContentMatch "TestFileContentOriginal"
         }
     }
 }
