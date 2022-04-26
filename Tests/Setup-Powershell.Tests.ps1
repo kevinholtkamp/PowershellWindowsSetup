@@ -15,8 +15,8 @@ Describe "Setup-Powershell"{
         It "PackageProvider NuGet"{
             Get-PackageProvider *NuGet* | Should -Be $true
         }
-        It "Module Recycle"{
-            Get-InstalledModule *Recycle* | Should -Be $true
+        It "Module PSWinRAR"{
+            Get-InstalledModule *PSWinRAR* | Should -Be $true
         }
     }
 }
