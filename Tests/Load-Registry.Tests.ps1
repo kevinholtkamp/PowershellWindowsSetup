@@ -6,6 +6,7 @@ BeforeAll {
 }
 
 Describe "Load-Registry"{
+    #ToDo make test non intrusive for host
     Context "Load-Registry"{
         BeforeAll{
             Load-Registry -Group $TestGroup

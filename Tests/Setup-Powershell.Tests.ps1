@@ -6,6 +6,7 @@ BeforeAll {
 }
 
 Describe "Setup-Powershell"{
+    #ToDo make test non intrusive for host
     Context "Setup-Powershell"{
         BeforeAll{
             Setup-Powershell -Group $TestGroup

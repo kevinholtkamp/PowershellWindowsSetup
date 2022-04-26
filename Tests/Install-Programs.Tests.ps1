@@ -6,6 +6,7 @@ BeforeAll {
 }
 
 Describe "Install-Programs"{
+    #ToDo make test non intrusive for host
     Context "Install-Programs"{
         BeforeAll{
             Install-Programs -Group $TestGroup

@@ -6,6 +6,7 @@ BeforeAll {
 }
 
 Describe "Remove-Bloatware"{
+    #ToDo make test non intrusive for host
     Context "Remove-Bloatware"{
         BeforeAll{
             Remove-Bloatware -Group $TestGroup
