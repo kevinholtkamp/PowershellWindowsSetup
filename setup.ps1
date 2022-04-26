@@ -154,7 +154,7 @@ function Install-Programs($Group = "default"){
     Write-Host "Installing programs"
     foreach($ExeFile in Get-Childitem ".\$Group\install\*.exe"){
         Write-Verbose "Installing $ExeFile from file"
-        & $ExeFile
+        Start-Process -FilePath "$ExeFile" -ArgumentList "/S" -Wait | Out-Null
         Write-Verbose "Done installing $ExeFile from file"
     }
 
