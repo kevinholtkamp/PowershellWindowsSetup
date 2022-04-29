@@ -1,2 +1,1 @@
-PuTTY.PuTTY
-RARLab.WinRAR
+wingetTestPackage

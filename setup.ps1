@@ -164,7 +164,8 @@ function Install-Programs($Group = "default"){
             Write-Verbose "Installing $URL from url"
             $Index++
             (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
-            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" | Out-Null
+            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" -Wait | Out-Null
+            Remove-Item "$($Env:TEMP)\$Index.exe" -Force -ErrorAction "silentlycontinue"
             Write-Verbose "Done installing $URL from url"
         }
         Write-Verbose "Done installing from url"
