@@ -59,6 +59,26 @@ else{
 }
 
 Write-Host "Invoking Pester" -ForegroundColor Green
-Invoke-Pester ".\Tests\" -PassThru
+$config = New-PesterConfiguration -HashTable @{
+    Run = @{
+        Path = "$(Get-Location)\Tests"
+        PassThru = $true
+    }
+    #    CodeCoverage = @{
+    #        Enabled = $true
+    #        OutputPath = "./Tests/"
+    #    }
+    #    TestResult = @{
+    #        Enabled = $true
+    #        OutputPath = "./Tests/"
+    #    }
+    Should = @{
+        ErrorAction = 'Continue'
+    }
+    Output = @{
+        Verbosity = "Detailed"
+    }
+}
+Invoke-Pester -Configuration $config
 
 Write-Host "Tests finnished" -ForegroundColor Green
