@@ -6,17 +6,21 @@ BeforeAll {
 }
 
 Describe "Setup-Powershell"{
-    #ToDo make test non intrusive for host
-    Context "Setup-Powershell"{
+    Context "Powershell"{
         BeforeAll{
+            Mock Update-Help {}
+            Mock Get-InstalledModule {}
+            Mock Get-PackageProvider {}
+            Mock Install-PackageProvider {}
+            Mock Install-Module {}
+        }
+        It "Testing install"{
             Setup-Powershell -Group $TestGroup
-        }
-        #ToDo remove Nuget and Recycle if they weren't installed before
-        It "PackageProvider NuGet"{
-            Get-PackageProvider *NuGet* | Should -Be $true
-        }
-        It "Module PSWinRAR"{
-            Get-InstalledModule *PSWinRAR* | Should -Be $true
+            Should -Invoke Update-Help -Exactly -Times 1
+            Should -Invoke Install-PackageProvider -Exactly -Times 1 -ParameterFilter {"NuGet"}
+            Should -Invoke Get-PackageProvider -Exactly -Times 1 -ParameterFilter {"NuGet"}
+            Should -Invoke Get-InstalledModule -Exactly -Times 1 -ParameterFilter {"PSWinRAR"}
+            Should -Invoke Install-Module -Exactly -Times 1 -ParameterFilter {"PSWinRAR"}
         }
     }
 }
