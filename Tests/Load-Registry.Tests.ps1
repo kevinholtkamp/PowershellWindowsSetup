@@ -5,14 +5,34 @@ BeforeAll {
     . .\Tests\CommonTestParameters.ps1
 }
 
+#Testing the .reg file instead of the Load-Registry function
+#Since the function uses "reg import" there is no need to test the actual function
 Describe "Load-Registry"{
-    #ToDo make test non intrusive for host
-    Context "Load-Registry"{
-        BeforeAll{
-            Load-Registry -Group $TestGroup
+    BeforeAll{
+        $Header = '(Windows Registry Editor Version 5\.00)'
+        $Location = '(\[-?[\w \.\\]+\])'
+        $Key = '(("?[\w \.\\]+"?=(\w*:\w*|"[^"]*"|-)))'
+        $Comment = '(;.*)'
+        $NewLine = '(\r?\n)'
+        $Regex = "^$Header($NewLine+$Location($NewLine+$Key|$NewLine+$Comment)*)*$NewLine*$"
+    }
+    Context "Correct files"{
+        It "Default test file"{
+            "$TestGroup\settings\registry.reg" | Should -FileContentMatchMultiline $Regex
         }
-        It "Import registry keys"{
-            Get-ItemPropertyValue -Path "HKCU:\Control Panel\Desktop" -Name "JPEGImportQuality" | Should -Be 100
+    }
+    Context "Files with errors"{
+        It "Broken header"{
+            "$TestGroup\settings\registry_brokenHeader.reg" | Should -Not -FileContentMatchMultiline $Regex
+        }
+        It "Broken Location"{
+            "$TestGroup\settings\registry_brokenLocation.reg" | Should -Not -FileContentMatchMultiline $Regex
+        }
+        It "Broken Key"{
+            "$TestGroup\settings\registry_brokenKey.reg" | Should -Not -FileContentMatchMultiline $Regex
+        }
+        It "Broken Value"{
+            "$TestGroup\settings\registry_brokenValue.reg" | Should -Not -FileContentMatchMultiline $Regex
         }
     }
 }

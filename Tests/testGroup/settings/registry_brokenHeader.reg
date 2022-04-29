@@ -1,0 +1,3 @@
+[HKEY_CURRENT_USER\Control Panel\Desktop]
+;Disable compression of Desktop Background
+"JPEGImportQuality"=dword:00000064
