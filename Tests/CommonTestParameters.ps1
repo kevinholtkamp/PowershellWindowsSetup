@@ -1,13 +1,3 @@
-if(!(Get-InstalledModule PsIni -ErrorAction "silentlyContinue")){
-    Write-Host "Installing PsIni" -ForegroundColor Green
-    Install-Module -Name PsIni -Force -Confirm:$false -Repository "CustomRepository"
-}
-if(!(Get-InstalledModule Recycle -ErrorAction "silentlyContinue")){
-    Write-Host "Installing Recycle" -ForegroundColor Green
-    Install-Module -Name Recycle -Force -Confirm:$false -Repository "CustomRepository"
-}
-
-
 Set-Variable -Name "TestGroup" -Value "Tests\testGroup" -Scope Global
 
 Mock -CommandName Write-Host -MockWith {}
