@@ -7,6 +7,7 @@ Mock -CommandName Read-Host -MockWith {}
 Set-Variable -Name "DebugPreference" -Value "silentlyContinue" -Scope Global
 Set-Variable -Name "ErrorActionPreference" -Value "silentlyContinue" -Scope Global
 Set-Variable -Name "VerbosePreference" -Value "silentlyContinue" -Scope Global
+Set-Variable -Name "ProgressPreference" -Value "silentlyContinue" -Scope Global
 
 #Mock -CommandName Write-Debug -MockWith {Write-Host $Prompt}
 #Mock -CommandName Write-Verbose -MockWith {Write-Host $Prompt}

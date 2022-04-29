@@ -1,4 +1,11 @@
-$ProgressPreference = "silentlycontinue"
+Set-Variable -Name "DebugPreference" -Value "silentlyContinue" -Scope Script
+Set-Variable -Name "ErrorActionPreference" -Value "silentlyContinue" -Scope Script
+Set-Variable -Name "VerbosePreference" -Value "silentlyContinue" -Scope Script
+Set-Variable -Name "ProgressPreference" -Value "silentlyContinue" -Scope Script
+$script:PSDefaultParameterValues = @{
+    "*:Confirm" = $false
+    "*:Force" = $true
+}
 
 if(!(Get-PackageProvider "NuGet")){
     Write-Host "Installing PackageProvider NuGet" -ForegroundColor Yellow
@@ -55,4 +62,3 @@ Write-Host "Invoking Pester" -ForegroundColor Green
 Invoke-Pester ".\Tests\" -PassThru
 
 Write-Host "Tests finnished" -ForegroundColor Green
-Read-Host
