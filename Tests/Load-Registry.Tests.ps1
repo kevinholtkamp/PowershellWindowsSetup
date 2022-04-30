@@ -11,7 +11,7 @@ Describe "Load-Registry"{
     BeforeAll{
         $Header = '(Windows Registry Editor Version 5\.00)'
         $Location = '(\[-?[\w \.\\]+\])'
-        $Key = '(("?[\w \.\\]+"?=(\w*:\w*|"[^"]*"|-)))'
+        $Key = '(("?[\w \.]+"?=(\w*:\w*|"[^"]*"|-)))'
         $Comment = '(;.*)'
         $NewLine = '(\r?\n)'
         $Regex = "^$Header($NewLine+$Location($NewLine+$Key|$NewLine+$Comment)*)*$NewLine*$"
