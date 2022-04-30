@@ -23,7 +23,10 @@ function Load-Registry($Group = "default"){
     }
 }
 
-function Create-Symlinks($Group = "default"){
+function Create-Symlinks(){
+    [Cmdletbinding()]
+    param($Group = "default")
+
     Write-Host "Creating Symlinks"
     if(Test-path ".\$Group\settings\symlinks.ini"){
         $IniContent = Get-IniContent -FilePath ".\$Group\settings\symlinks.ini" -IgnoreComments
@@ -37,10 +40,55 @@ function Create-Symlinks($Group = "default"){
                 $Path = $Links[$Name]
                 Write-Verbose "Create-Symlink: $Name | $($Path):"
                 try{
-                    if(Test-Path $Path){
-                        Write-Verbose "Local folder exists"
-                        if(!(Test-Symlink "$Path")){
-                            Write-Verbose "Local folder is no Symlink yet"
+                    & {
+                        $ErrorActionPreference = "stop"
+                        if(Test-Path $Path){
+                            Write-Verbose "Local folder exists"
+                            if(!(Test-Symlink "$Path")){
+                                Write-Verbose "Local folder is no Symlink yet"
+                                if(!(Test-Path "$LinkPath\$Name")){
+                                    Write-Verbose "Does not exist in LinkPath"
+                                    New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
+                                    Write-Verbose "New folder created in LinkPath"
+                                }
+                                else{
+                                    Write-Verbose "Exists in LinkPath"
+                                }
+                                Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
+                                Write-Verbose "Copied to LinkPath sucessfully"
+                                Remove-ItemSafely -Path $Path -Recurse -Force
+                                Write-Verbose "Removed old folder"
+                                New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
+                                Write-Verbose "SymLink created sucessfully"
+                            }
+                            else{
+                                Write-Verbose "Local folder is a SymLink already"
+                                if(!(Test-Path "$LinkPath\$Name")){
+                                    Write-Verbose "But does not exist in LinkPath"
+                                    New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
+                                    Write-Verbose "New folder created in LinkPath"
+                                }
+                                else{
+                                    Write-Verbose "Exists in LinkPath"
+                                }
+                                if((Get-SymlinkTarget $Path) -ne "$LinkPath\$Name"){
+                                    Write-Verbose "Symlink exists, but has a wrong target"
+                                    Write-Verbose "Target: $LinkPath\$Name"
+                                    Write-Verbose "Wanted Target: $(Get-SymlinkTarget $Path)"
+                                    Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
+                                    Write-Verbose "Everything copied from false target"
+                                    Remove-ItemSafely -Path $Path
+                                    Write-Verbose "Old symlink removed"
+                                    New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
+                                    Write-Verbose "New Symlink created"
+                                }
+                                else{
+                                    Write-Verbose "Symlink exists and has the correct target, no changes need to be made"
+                                }
+                            }
+                        }
+                        else{
+                            Write-Verbose "Local folder does not exist"
                             if(!(Test-Path "$LinkPath\$Name")){
                                 Write-Verbose "Does not exist in LinkPath"
                                 New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
@@ -49,56 +97,14 @@ function Create-Symlinks($Group = "default"){
                             else{
                                 Write-Verbose "Exists in LinkPath"
                             }
-                            Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
-                            Write-Verbose "Copied to LinkPath sucessfully"
-                            Remove-ItemSafely -Path $Path -Recurse -Force
-                            Write-Verbose "Removed old folder"
                             New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
-                            Write-Verbose "SymLink created sucessfully"
+                            Write-Verbose "Symlink created successfully"
                         }
-                        else{
-                            Write-Verbose "Local folder is a SymLink already"
-                            if(!(Test-Path "$LinkPath\$Name")){
-                                Write-Verbose "But does not exist in LinkPath"
-                                New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
-                                Write-Verbose "New folder created in LinkPath"
-                            }
-                            else{
-                                Write-Verbose "Exists in LinkPath"
-                            }
-                            if((Get-SymlinkTarget $Path) -ne "$LinkPath\$Name"){
-                                Write-Verbose "Symlink exists, but has a wrong target"
-                                Write-Verbose "Target: $LinkPath\$Name"
-                                Write-Verbose "Wanted Target: $(Get-SymlinkTarget $Path)"
-                                Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
-                                Write-Verbose "Everything copied from false target"
-                                Remove-ItemSafely -Path $Path
-                                Write-Verbose "Old symlink removed"
-                                New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
-                                Write-Verbose "New Symlink created"
-                            }
-                            else{
-                                Write-Verbose "Symlink exists and has the correct target, no changes need to be made"
-                            }
-                        }
+                        Write-Host "No errors occured, applying changes"
                     }
-                    else{
-                        Write-Verbose "Local folder does not exist"
-                        if(!(Test-Path "$LinkPath\$Name")){
-                            Write-Verbose "Does not exist in LinkPath"
-                            New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
-                            Write-Verbose "New folder created in LinkPath"
-                        }
-                        else{
-                            Write-Verbose "Exists in LinkPath"
-                        }
-                        New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
-                        Write-Verbose "Symlink created successfully"
-                    }
-                    Write-Host "No errors occured, applying changes"
                 }
                 catch{
-                    Write-Host "An error occured, rolling back changes"
+                    Write-Error "An error occured; stopping $(if($ErrorActionPreference -ne "stop"){"current "})symlink creation"
                 }
             }
         }
