@@ -25,11 +25,11 @@ function Load-Registry($Group = "default"){
 
 function Create-Symlinks(){
     [Cmdletbinding()]
-    param($Group = "default")
+    param($Group = "default", $FileName = "symlinks.ini")
 
     Write-Host "Creating Symlinks"
-    if(Test-path ".\$Group\settings\symlinks.ini"){
-        $IniContent = Get-IniContent -FilePath ".\$Group\settings\symlinks.ini" -IgnoreComments
+    if(Test-path ".\$Group\settings\$FileName"){
+        $IniContent = Get-IniContent -FilePath ".\$Group\settings\$FileName" -IgnoreComments
         foreach($LinkPath in $IniContent.Keys){
             Write-Verbose "Creating Symlinks for LinkPath $LinkPath"
             if(!(Test-Path $LinkPath)){
