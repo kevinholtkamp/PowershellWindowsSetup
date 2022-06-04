@@ -54,7 +54,7 @@ function Create-Symlinks(){
                                 else{
                                     Write-Verbose "Exists in LinkPath"
                                 }
-                                Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
+                                Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse -Force
                                 Write-Verbose "Copied to LinkPath sucessfully"
                                 Remove-ItemSafely -Path $Path -Recurse -Force
                                 Write-Verbose "Removed old folder"
@@ -75,7 +75,7 @@ function Create-Symlinks(){
                                     Write-Verbose "Symlink exists, but has a wrong target"
                                     Write-Verbose "Target: $LinkPath\$Name"
                                     Write-Verbose "Wanted Target: $(Get-SymlinkTarget $Path)"
-                                    Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
+                                    Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse -Force
                                     Write-Verbose "Everything copied from false target"
                                     Remove-ItemSafely -Path $Path
                                     Write-Verbose "Old symlink removed"
