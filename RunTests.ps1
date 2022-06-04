@@ -1,11 +1,4 @@
-Set-Variable -Name "DebugPreference" -Value "silentlyContinue" -Scope Script
-Set-Variable -Name "ErrorActionPreference" -Value "silentlyContinue" -Scope Script
-Set-Variable -Name "VerbosePreference" -Value "silentlyContinue" -Scope Script
-Set-Variable -Name "ProgressPreference" -Value "silentlyContinue" -Scope Script
-$script:PSDefaultParameterValues = @{
-    "*:Confirm" = $false
-    "*:Force" = $true
-}
+#Requires -RunAsAdministrator
 
 if(!(Get-PackageProvider "NuGet")){
     Write-Host "Installing PackageProvider NuGet" -ForegroundColor Yellow
@@ -59,26 +52,42 @@ else{
 }
 
 Write-Host "Invoking Pester" -ForegroundColor Green
-$config = New-PesterConfiguration -HashTable @{
-    Run = @{
-        Path = "$(Get-Location)\Tests"
-        PassThru = $true
+&{
+    Set-Variable -Name "DebugPreference" -Value "silentlyContinue" -Scope Script
+    Set-Variable -Name "ErrorActionPreference" -Value "silentlyContinue" -Scope Script
+    Set-Variable -Name "VerbosePreference" -Value "silentlyContinue" -Scope Script
+    Set-Variable -Name "ProgressPreference" -Value "silentlyContinue" -Scope Script
+    $script:PSDefaultParameterValues = @{
+        "*:Confirm" = $false
+    #    "*:Force" = $true
     }
-    #    CodeCoverage = @{
-    #        Enabled = $true
-    #        OutputPath = "./Tests/"
-    #    }
-    #    TestResult = @{
-    #        Enabled = $true
-    #        OutputPath = "./Tests/"
-    #    }
-    Should = @{
-        ErrorAction = 'Continue'
+    $config = New-PesterConfiguration -HashTable @{
+        Run = @{
+            Path = "$(Get-Location)\Tests"
+            PassThru = $true
+        }
+        CodeCoverage = @{
+            Enabled = $true
+    #        OutputPath = "./Tests/Results/coverage.xml"
+        }
+        TestResult = @{
+            Enabled = $true
+    #        OutputPath = "./Tests/Results/"
+        }
+        Should = @{
+            ErrorAction = 'Continue'
+        }
+        Output = @{
+            Verbosity = "Detailed"
+            StackTraceVerbosity = "Filtered"
+        }
+        Debug = @{
+            ShowFullErrors = $false
+        }
     }
-    Output = @{
-        Verbosity = "Detailed"
-    }
+    $PesterResult = Invoke-Pester -Configuration $config
+#    Write-Host ($PesterResult | Select-Object -Property "FailedCount", "PassedCount", "SkippedCount", "NotRunCount", "TotalCount", "CodeCoverage")
+#    if($PesterResult.FailedCount -ne 0){
+#        $PesterResult | Select-Object -Property "Failed" | % {Write-Host $_ -ForegroundColor Red}
+#    }
 }
-Invoke-Pester -Configuration $config
-
-Write-Host "Tests finnished" -ForegroundColor Green
