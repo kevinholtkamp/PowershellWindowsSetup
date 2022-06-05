@@ -388,11 +388,11 @@ function Start-Setup($Group = "default"){
         Setup-Partitions -Group $Group
         Load-Registry -Group $Group
         Create-Symlinks -Group $Group
-        Setup-FileAssociations -Group $Group
         Setup-Hosts -Group $Group
         Setup-Quickaccess -Group $Group
         Remove-Bloatware -Group $Group
         Install-Programs -Group $Group
+        Setup-FileAssociations -Group $Group
         if(Test-Path ".\append_custom.ps1"){
             & ".\$Group\scripts\append_custom.ps1"
         }
