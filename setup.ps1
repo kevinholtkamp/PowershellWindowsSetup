@@ -1,6 +1,32 @@
 . .\functions.ps1
 
 
+function Setup-Network($Group = "default"){
+    if(Test-Path ".\$Group\network\interfaces.ini"){
+        $Interfaces = Get-IniContent -FilePath ".\$Group\network\interfaces.ini" -IgnoreComments
+        foreach($InterfaceAlias in $Interfaces.Keys){
+            $Interface = $Interfaces[$InterfaceAlias]
+            Remove-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily $Interface["AddressFamily"]
+            if($Interface["DefaultGateway"]){
+                Remove-NetRoute -InterfaceAlias $InterfaceAlias
+            }
+            New-NetIPAddress -InterfaceAlias $InterfaceAlias @Interface
+        }
+    }
+    else{
+        Write-Host "Cannot find interfaces file"
+    }
+    if(Test-Path ".\$Group\network\dns.ini"){
+        $DNSServers = Get-IniContent -FilePath ".\$Group\network\dns.ini" -IgnoreComments
+        foreach($InterfaceAlias in $DNSServers){
+            Set-DnsClientServerAddress -InterfaceAlias $InterfaceAlias -ServerAddresses $DNSServers.Values
+        }
+    }
+    else{
+        Write-Host "Cannot find dns file"
+    }
+}
+
 function Setup-FileAssociations($Group = "default"){
     Write-Host "Setting up file associations"
     $Associations = Get-IniContent -FilePath ".\$Group\settings\associations.ini" -IgnoreComments
