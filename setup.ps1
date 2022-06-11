@@ -230,7 +230,6 @@ function Install-Programs($Group = "default"){
                 Write-Verbose "Done installing winget"
             }
             else{
-                Stop-Job $WingetJob
                 Write-Verbose "Timout while installing winget, skipping..."
             }
         }
