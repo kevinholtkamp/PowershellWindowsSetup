@@ -24,7 +24,7 @@ Function Create-Association($Extension, $Executable){
     else{
     # Name doesn't exist: create it
         $Name = "$($Extension.Replace('.', ''))file" # ".log.1" becomes "log1file"
-        cmd /c 'assoc $ext=$name'
+        cmd /c "assoc $Extension=$Name"
     }
     cmd /c "ftype $Name=`"$Executable`" `"%1`""
 }
