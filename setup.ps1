@@ -135,21 +135,6 @@ function Setup-Hosts($Group = "default"){
     Write-Host "Done setting up hosts file"
 }
 
-function Setup-Quickaccess($Group = "default"){
-    if(Test-Path ".\$Group\quickaccess\folders.txt"){
-        Write-Host "Setting up quickaccess"
-        foreach($Folder in (Get-Content ".\$Group\quickaccess\folders.txt" | Where-Object {$_ -notlike ";*"})){
-            Write-Verbose "Adding $Folder to quickaccess"
-            (New-Object -com shell.application).Namespace($Folder).Self.InvokeVerb("pintohome")
-            Write-Verbose "Done adding $Folder to quickaccess"
-        }
-        Write-Host "Done setting up quickaccess"
-    }
-    else{
-        Write-Host "No quickaccess file found"
-    }
-}
-
 function Install-Programs($Group = "default"){
     Write-Host "Installing programs"
     foreach($ExeFile in Get-Childitem ".\$Group\install\*.exe"){
@@ -375,7 +360,6 @@ function Start-Setup($Group = "default"){
         Load-Registry -Group $Group
         Create-Symlinks -Group $Group
         Setup-Hosts -Group $Group
-        Setup-Quickaccess -Group $Group
         Remove-Bloatware -Group $Group
         Install-Programs -Group $Group
         Setup-FileAssociations -Group $Group
