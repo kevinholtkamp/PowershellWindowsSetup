@@ -248,6 +248,21 @@ function Remove-Bloatware($Group = "default"){
     }
 }
 
+function Setup-Quickaccess($Group = "default"){
+    if(Test-Path ".\$Group\quickaccess\folders.txt"){
+        Write-Host "Setting up quickaccess"
+        foreach($Folder in (Get-Content ".\$Group\quickaccess\folders.txt" | Where-Object {$_ -notlike ";*"})){
+            Write-Verbose "Adding $Folder to quickaccess"
+            (New-Object -com shell.application).Namespace($Folder).Self.InvokeVerb("pintohome")
+            Write-Verbose "Done adding $Folder to quickaccess"
+        }
+        Write-Host "Done setting up quickaccess"
+    }
+    else{
+        Write-Host "No quickaccess file found"
+    }
+}
+
 function Setup-Partitions($Group = "default"){
     Write-Host "Setting up partitions"
     if(Test-Path ".\$Group\settings\partitions.ini"){
@@ -360,6 +375,7 @@ function Start-Setup($Group = "default"){
         Load-Registry -Group $Group
         Create-Symlinks -Group $Group
         Setup-Hosts -Group $Group
+        Setup-Quickaccess -Group $Group
         Remove-Bloatware -Group $Group
         Install-Programs -Group $Group
         Setup-FileAssociations -Group $Group
