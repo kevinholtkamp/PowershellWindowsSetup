@@ -8,21 +8,23 @@ else{
     Write-Host "NuGet already installed" -ForegroundColor Green
 }
 $Repository = "CustomRepository"
-if(!(Get-PsRepository "CustomRepository")){
+if(!(Get-PsRepository "CustomRepository" -ErrorAction SilentlyContinue)){
     Write-Host "Installing Custom Repo" -ForegroundColor Yellow
     $Rep = @{
         Name = "CustomRepository"
         SourceLocation = "\\raspberrypi\Private\PowershellRepository\"
         PublishLocation = "\\raspberrypi\Private\PowershellRepository\"
         InstallationPolicy = "Trusted"
+        ErrorAction = "Silentlycontinue"
     }
-    Register-PSRepository @Rep -ErrorAction stop
-    if(Get-PsRepository "CustomRepository"){
+    Register-PSRepository -ErrorAction SilentlyContinue @Rep
+    if(Get-PsRepository "CustomRepository" -ErrorAction SilentlyContinue){
         $Repository = "CustomRepository"
     }
     else{
         Write-Host "Install failed, falling back to PSGallery" -ForegroundColor Red
         $Repository = "PSGallery"
+        Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
     }
 }
 else{
@@ -59,6 +61,7 @@ Write-Host "Invoking Pester" -ForegroundColor Green
     Set-Variable -Name "ProgressPreference" -Value "silentlyContinue" -Scope Script
     $script:PSDefaultParameterValues = @{
         "*:Confirm" = $false
+        "*:ErrorAction" = "SilentlyContinue"
     #    "*:Force" = $true
     }
     $config = New-PesterConfiguration -HashTable @{
