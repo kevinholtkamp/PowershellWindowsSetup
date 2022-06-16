@@ -3,7 +3,12 @@ BeforeAll {
 }
 
 Describe "Create-Symlinks"{
+    BeforeAll{
+        New-Item "$TestConfiguration\settings" -ItemType Directory -Force -ErrorAction SilentlyContinue
+    }
     AfterAll{
+        Remove-Item "$TestConfiguration\settings" -Force -Recurse -ErrorAction SilentlyContinue
+
         Remove-Item "$TestConfiguration\settings\symlinks.ini"
     }
     Context "Normal cases"{

@@ -3,6 +3,12 @@ BeforeAll {
 }
 
 Describe "Setup-FileAssociations"{
+    BeforeAll{
+        New-Item "$TestConfiguration\settings" -ItemType Directory -Force -ErrorAction SilentlyContinue
+    }
+    AfterAll{
+        Remove-Item "$TestConfiguration\settings" -Force -Recurse -ErrorAction SilentlyContinue
+    }
     Context "Setup-FileAssociations"{
         BeforeAll{
             $AssociationBefore = cmd.exe /c "assoc .csv" 2> $null

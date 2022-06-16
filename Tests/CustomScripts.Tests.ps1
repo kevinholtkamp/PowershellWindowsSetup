@@ -3,7 +3,12 @@ BeforeAll {
 }
 
 Describe "Custom scripts"{
+    BeforeAll{
+        New-Item "$TestConfiguration\scripts" -ItemType Directory -Force -ErrorAction SilentlyContinue
+    }
     AfterAll{
+        Remove-Item "$TestConfiguration\scripts" -Force -Recurse -ErrorAction SilentlyContinue
+
         Remove-Item "$TestConfiguration\scripts\append_custom.ps1"
         Remove-Item "$TestConfiguration\scripts\prepend_custom.ps1"
     }

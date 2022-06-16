@@ -86,5 +86,5 @@ Write-Host "Invoking Pester" -ForegroundColor Green
         }
     }
     $PesterResult = Invoke-Pester -Configuration $config
-    Remove-Item "./testConfiguration" -Recurse -Force
+    Remove-Item ".\Tests\testConfiguration" -Recurse -Force -ErrorAction "silentlycontinue" | Out-Null
 }

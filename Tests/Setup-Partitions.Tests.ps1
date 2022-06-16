@@ -3,6 +3,12 @@ BeforeAll {
 }
 
 Describe "Setup-Partitions"{
+    BeforeAll{
+        New-Item "$TestConfiguration\settings" -ItemType Directory -Force -ErrorAction SilentlyContinue
+    }
+    AfterAll{
+        Remove-Item "$TestConfiguration\settings" -Force -Recurse -ErrorAction SilentlyContinue
+    }
     Context "Setup-Partitions"{
         BeforeAll{
             Mock Get-Disk {

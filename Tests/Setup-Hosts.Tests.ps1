@@ -3,6 +3,12 @@ BeforeAll {
 }
 
 Describe "Setup-Hosts"{
+    BeforeAll{
+        New-Item "$TestConfiguration\hosts" -ItemType Directory -Force -ErrorAction SilentlyContinue
+    }
+    AfterAll{
+        Remove-Item "$TestConfiguration\hosts" -Force -Recurse -ErrorAction SilentlyContinue
+    }
     Context "Setup-Hosts"{
         BeforeAll{
             $Env:WinDir = "TestDrive:\Windows"

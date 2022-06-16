@@ -10,10 +10,14 @@ Describe "Install-Programs"{
         Remove-Item "$TestConfiguration\install\from-winget.txt" -ErrorAction SilentlyContinue
         Remove-Item "$TestConfiguration\install\chocolatey-repository.ini" -ErrorAction SilentlyContinue
     }
-    BeforeAll{
+    BeforeEach{
+        New-Item "$TestConfiguration\install" -ItemType Directory -Force -ErrorAction Silentlycontinue
+
         Cleanup
     }
     AfterEach{
+        Remove-Item "$TestConfiguration\install" -Force -Recurse -ErrorAction SilentlyContinue
+
         Cleanup
     }
     Context "Install from URL"{

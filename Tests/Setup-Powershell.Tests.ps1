@@ -3,6 +3,12 @@ BeforeAll {
 }
 
 Describe "Setup-Powershell"{
+    BeforeAll{
+        New-Item "$TestConfiguration\powershell" -ItemType Directory -Force -ErrorAction SilentlyContinue
+    }
+    AfterAll{
+        Remove-Item "$TestConfiguration\powershell" -Force -Recurse -ErrorAction SilentlyContinue
+    }
     Context "Powershell"{
         BeforeAll{
             Mock Update-Help {}

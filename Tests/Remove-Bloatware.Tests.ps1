@@ -3,6 +3,12 @@ BeforeAll {
 }
 
 Describe "Remove-Bloatware"{
+    BeforeAll{
+        New-Item "$TestConfiguration\install" -ItemType Directory -Force -ErrorAction Silentlycontinue
+    }
+    AfterAll{
+        Remove-Item "$TestConfiguration\install" -Force -Recurse -ErrorAction SilentlyContinue
+    }
     Context "Test with bloatware"{
         BeforeAll{
             Mock Get-AppxPackage {
