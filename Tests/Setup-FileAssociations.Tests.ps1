@@ -5,7 +5,7 @@ BeforeAll {
 Describe "Setup-FileAssociations"{
     Context "Setup-FileAssociations"{
         BeforeAll{
-            $AssociationBefore = cmd.exe /c "assoc .csv"
+            $AssociationBefore = cmd.exe /c "assoc .csv" 2> $null
             if($AssociationBefore){
                 $AssociationBefore = $AssociationBefore.Split('=')[1]
             }
@@ -22,7 +22,7 @@ Describe "Setup-FileAssociations"{
         }
         It "Setting Editor for .csv"{
             Setup-FileAssociations -Configuration $TestConfiguration
-            cmd.exe /c "assoc .csv" | Should -Be ".csv=csvfile"
+            cmd.exe /c "assoc .csv" 2> $null | Should -Be ".csv=csvfile"
         }
     }
 }
