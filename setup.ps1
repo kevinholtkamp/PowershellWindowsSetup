@@ -104,7 +104,12 @@ function Create-Symlinks(){
                     }
                 }
                 catch{
-                    Write-Error "An error occured; stopping $(if($ErrorActionPreference -ne "stop"){"current "})symlink creation"
+                    if($ErrorActionPreference -eq "Stop"){
+                        throw "An error occured; stopping symlink creation"
+                    }
+                    else{
+                        Write-Error "An error occured; stopping current symlink creation"
+                    }
                 }
             }
         }
