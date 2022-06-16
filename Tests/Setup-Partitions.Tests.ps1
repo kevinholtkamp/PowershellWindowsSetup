@@ -22,7 +22,14 @@ Describe "Setup-Partitions"{
             }
             Mock Set-Partition {}
         }
+        AfterAll{
+            Remove-Item "$TestGroup\settings\partitions.ini"
+        }
         It "Set mock partitions"{
+            Set-Content "$TestGroup\settings\partitions.ini" "[SERIAL]
+1=A
+2=B"
+
             Setup-Partitions -Group $TestGroup
             Should -Invoke -CommandName Set-Partition -Times 4 -Exactly
 #            Should -Invoke -CommandName Set-Partition -Times 1 -Exactly -ParameterFilter { $InputObject.PartitionNumber -eq 1 -and $NewDriveLetter -eq "D" }
