@@ -1,4 +1,4 @@
-$ConfigFile = "$(Get-Location)/Tests/TestSandbox.wsb"
+$ConfigFile = "$(Get-Location)\Tests\TestSandbox.wsb"
 $SandboxExecutable = "C:\Windows\system32\WindowsSandbox.exe"
 
 if(Test-Path $SandboxExecutable){

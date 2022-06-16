@@ -15,10 +15,10 @@ Additionally, I try to create the script in a way where you can run it again at 
         Start-Setup -Configuration "default"
 ```
 ## Configuration files
-### ./hosts/
+### .\hosts\
 - `from-file.txt` plain text file where each line represents one entry in the windows hosts file format
 - `from-url.txt` plain text file where each line represents a url to a file in the windows hosts file format
-### ./install/
+### .\install\
 - `from-chocolatey.txt` plain text file where each line represents the name of a chocolatey package
 - `from-winget.txt` plain text file where each line represents the name of a winget package
 - `from-url.txt` plain text file where each line represents a url to an executable file
@@ -26,13 +26,13 @@ Additionally, I try to create the script in a way where you can run it again at 
 - `powershell-packageprovider.txt` plain text file where each line represents the name of a powershell package-provider
 - `remove-bloatware.txt` plain text file where each line represents the name of an AppxPackage
 - `chocolatey-repository.ini` ini file where every section corresponds to a chocolatey repository with the keys being the parameters used to create the repository via powershell "splatter"
-### ./quickaccess/
+### .\quickaccess\
 - `folders.txt` plain text file where each line represents the path to a folder
-### ./scheduledTasks/
-- `./scheduledTasks/` can contain none or any number of .xml files which represent a scheduled task in the [Windows task format](http://schemas.microsoft.com/windows/2004/02/mit/task)
-### ./scripts/
-- `./scripts/` can contain custom script files prepend_custom.ps1 and append_custom.ps1 which get executed before and after the other functions respectively
-### ./settings/
+### .\scheduledTasks\
+- `.\scheduledTasks\` can contain none or any number of .xml files which represent a scheduled task in the [Windows task format](http://schemas.microsoft.com/windows/2004/02/mit/task)
+### .\scripts\
+- `.\scripts\` can contain custom script files prepend_custom.ps1 and append_custom.ps1 which get executed before and after the other functions respectively
+### .\settings\
 - `gpedit.txt` text file containing a Windows registry backup in the Windows group policy backup file format
 - `partitions.ini` ini file where each key represents the serial number of a disk and every entry contains the target drive letter for a partition index
 - `registry.reg` reg file containing registry keys in the Windows Registry Editor Version 5.00 format

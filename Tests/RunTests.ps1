@@ -68,11 +68,11 @@ Write-Host "Invoking Pester" -ForegroundColor Green
         }
         CodeCoverage = @{
 #            Enabled = $true
-    #        OutputPath = "./Results/coverage.xml"
+#            OutputPath = ".\Results\coverage.xml"
         }
         TestResult = @{
 #            Enabled = $true
-    #        OutputPath = "./Results/"
+#            OutputPath = ".\Results\"
         }
         Should = @{
             ErrorAction = 'Continue'
