@@ -21,7 +21,14 @@ Describe "Remove-Bloatware"{
             }
             Mock Remove-AppxPackage {}
         }
+        AfterAll{
+            Remove-Item "$TestGroup\install\remove-bloatware.txt"
+        }
         It "Remove mocked bloatware"{
+            Set-Content "$TestGroup\install\remove-bloatware.txt" "*candy*"
+            Add-Content "$TestGroup\install\remove-bloatware.txt" "*king*"
+            Add-Content "$TestGroup\install\remove-bloatware.txt" "*xing*"
+
             Remove-Bloatware -Group $TestGroup
             Should -Invoke Remove-AppxPackage -Times 1 -ParameterFilter {"Candy Crush"}
             Should -Invoke Remove-AppxPackage -Times 1 -ParameterFilter {"King"}
