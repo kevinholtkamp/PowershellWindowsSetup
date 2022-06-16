@@ -1,12 +1,7 @@
 #Requires -RunAsAdministrator
 
-if(!(Get-PackageProvider "NuGet")){
-    Write-Host "Installing PackageProvider NuGet" -ForegroundColor Yellow
-    Install-PackageProvider -Name NuGet
-}
-else{
-    Write-Host "NuGet already installed" -ForegroundColor Green
-}
+Write-Host "Installing PackageProvider NuGet if not installed already" -ForegroundColor Yellow
+Install-PackageProvider -Name NuGet -Confirm:$false -Force | Out-Null
 $Repository = "CustomRepository"
 if(!(Get-PsRepository "CustomRepository" -ErrorAction SilentlyContinue)){
     Write-Host "Installing Custom Repo" -ForegroundColor Yellow
@@ -15,9 +10,11 @@ if(!(Get-PsRepository "CustomRepository" -ErrorAction SilentlyContinue)){
         SourceLocation = "\\raspberrypi\Private\PowershellRepository\"
         PublishLocation = "\\raspberrypi\Private\PowershellRepository\"
         InstallationPolicy = "Trusted"
-        ErrorAction = "Silentlycontinue"
     }
-    Register-PSRepository -ErrorAction SilentlyContinue @Rep
+    &{
+        $ErrorActionPreference = "silentlycontinue"
+        Register-PSRepository -ErrorAction "silentlycontinue" @Rep | Out-Null
+    }
     if(Get-PsRepository "CustomRepository" -ErrorAction SilentlyContinue){
         $Repository = "CustomRepository"
     }
