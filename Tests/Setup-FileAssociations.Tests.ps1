@@ -1,8 +1,5 @@
 BeforeAll {
     . .\Tests\CommonTestParameters.ps1
-
-    . .\functions.ps1
-    . .\setup.ps1
 }
 
 Describe "Setup-FileAssociations"{

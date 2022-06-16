@@ -66,16 +66,16 @@ Write-Host "Invoking Pester" -ForegroundColor Green
     }
     $config = New-PesterConfiguration -HashTable @{
         Run = @{
-            Path = "$(Get-Location)\Tests"
+            Path = "$(Get-Location)"
             PassThru = $true
         }
         CodeCoverage = @{
 #            Enabled = $true
-    #        OutputPath = "./Tests/Results/coverage.xml"
+    #        OutputPath = "./Results/coverage.xml"
         }
         TestResult = @{
 #            Enabled = $true
-    #        OutputPath = "./Tests/Results/"
+    #        OutputPath = "./Results/"
         }
         Should = @{
             ErrorAction = 'Continue'
