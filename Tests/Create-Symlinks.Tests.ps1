@@ -3,6 +3,9 @@ BeforeAll {
 }
 
 Describe "Create-Symlinks"{
+    AfterAll{
+        Remove-Item "$TestConfiguration\settings\symlinks.ini"
+    }
     Context "Normal cases"{
         BeforeAll{
             New-Item "TestDrive:\Original\Existing\Existing" -ItemType "directory" -Force
@@ -21,9 +24,6 @@ New\Existing=TestDrive:\Original\New\Existing
 New\New=TestDrive:\Original\New\New"
 
             Create-Symlinks -Configuration $TestConfiguration -ErrorAction "silentlycontinue"
-        }
-        AfterAll{
-            Remove-Item "$TestConfiguration\settings\symlinks.ini"
         }
         It "Nothing Exists"{
             Test-Symlink "TestDrive:\Original\New\New" | Should -Be $true
