@@ -9,7 +9,7 @@ Describe "Setup-Powershell"{
     Context "Setup-Powershell"{
         BeforeAll{
             $DebugPreference = "continue"
-            Setup-Powershell -Group $TestGroup
+            Setup-Powershell -Configuration $TestConfiguration
             $DebugPreference = "silentlycontinue"
         }
         It "PackageProvider NuGet"{

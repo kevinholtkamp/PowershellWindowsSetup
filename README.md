@@ -8,11 +8,11 @@ Additionally, I try to create the script in a way where you can run it again at 
 
 ## How to use
 - Change the values of the files in the `default`-folder according to your requirements and the specifications defined in the [Configuration files section](#Configuration-files), or delete files you do not need
-- Alternatively, create a new folder in the root directory of the project for every user group you need and create all the files in the same format as in the `default`-folder
-- Open a powershell console in the root directory of the project, load the setup.ps1 file and call the function `Start-Setup` with the Group-Parameter set to your user group if you do not use the default group:
+- Alternatively, create a new folder in the root directory of the project for every user Configuration you need and create all the files in the same format as in the `default`-folder
+- Open a powershell console in the root directory of the project, load the setup.ps1 file and call the function `Start-Setup` with the Configuration-Parameter set to your user Configuration if you do not use the default Configuration:
 ```Powershell      
         . .\setup.ps1
-        Start-Setup -Group "default"
+        Start-Setup -Configuration "default"
 ```
 ## Configuration files
 ### ./hosts/

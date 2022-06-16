@@ -9,7 +9,7 @@ Describe "Remove-Bloatware"{
     Context "Remove-Bloatware"{
         BeforeAll{
             $DebugPreference = "continue"
-            Remove-Bloatware -Group $TestGroup
+            Remove-Bloatware -Configuration $TestConfiguration
             $DebugPreference = "silentlycontinue"
         }
         It "Removing bloatware *candy*"{
