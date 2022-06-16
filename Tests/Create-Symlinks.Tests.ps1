@@ -6,27 +6,6 @@ BeforeAll {
 }
 
 Describe "Create-Symlinks"{
-    Context "Locked files"{
-        BeforeAll{
-            New-Item "TestDrive:\Original\Lock" -ItemType "directory" -Force
-            New-Item "TestDrive:\Original\Lock\File.txt" -ItemType "file" -Force
-            New-Item "TestDrive:\Target\Lock\File.txt" -ItemType "file" -Force
-        }
-        It "Locked file in target folder"{
-            $FileLock = [System.IO.File]::Open("$((Get-PSDrive "TestDrive").Root)\Target\Lock\File.txt", "Open", "Read")
-
-            {Create-Symlinks -Group $TestGroup -FileName "symlinks_lock.ini" -ErrorAction "stop"} | Should -Not -Throw
-
-            $FileLock.close()
-        }
-        It "Locked file in original folder"{
-            $FileLock = [System.IO.File]::Open("$((Get-PSDrive "TestDrive").Root)\Original\Lock\File.txt", "Open", "Read")
-
-            {Create-Symlinks -Group $TestGroup -FileName "symlinks_lock.ini" -ErrorAction "stop"} | Should -Throw
-
-            $FileLock.close()
-        }
-    }
     Context "Normal cases"{
         BeforeAll{
             New-Item "TestDrive:\Original\Existing\Existing" -ItemType "directory" -Force
@@ -38,7 +17,16 @@ Describe "Create-Symlinks"{
             Set-Content "TestDrive:\Links\New\Existing\File.txt" "TestFileContentLinks" -Force
             Set-Content "TestDrive:\Links\Existing\Existing\File.txt" "TestFileContentLinks" -Force
 
-            Create-Symlinks -Group $TestGroup -FileName "symlinks.ini" -ErrorAction "silentlycontinue"
+            Set-Content "$TestGroup\settings\symlinks.ini" "[TestDrive:\Links]
+Existing\Existing=TestDrive:\Original\Existing\Existing
+Existing\New=TestDrive:\Original\Existing\New
+New\Existing=TestDrive:\Original\New\Existing
+New\New=TestDrive:\Original\New\New"
+
+            Create-Symlinks -Group $TestGroup -ErrorAction "silentlycontinue"
+        }
+        AfterAll{
+            Remove-Item "$TestGroup\settings\symlinks.ini"
         }
         It "Nothing Exists"{
             Test-Symlink "TestDrive:\Original\New\New" | Should -Be $true
@@ -63,19 +51,55 @@ Describe "Create-Symlinks"{
             "TestDrive:\Original\Existing\Existing\File.txt" | Should -FileContentMatch "TestFileContentOriginal"
         }
     }
+    Context "Locked files"{
+        BeforeEach{
+            New-Item "TestDrive:\Original\Lock" -ItemType "directory" -Force
+            New-Item "TestDrive:\Original\Lock\File.txt" -ItemType "file" -Force
+            New-Item "TestDrive:\Target\Lock\File.txt" -ItemType "file" -Force
+
+            Set-Content "$TestGroup\settings\symlinks.ini" "[TestDrive:\Links]
+Lock=TestDrive:\Original\Lock"
+        }
+        AfterEach{
+            Remove-Item "TestDrive:\Original\Lock\File.txt"
+            Remove-Item "TestDrive:\Original\Lock"
+            Remove-Item "TestDrive:\Target\Lock\File.txt"
+
+            $FileLock.close()
+        }
+        It "Locked file in original folder"{
+            $FileLock = [System.IO.File]::Open("$((Get-PSDrive "TestDrive").Root)\Original\Lock\File.txt", "Open", "Read")
+
+            {Create-Symlinks -Group $TestGroup -ErrorAction "stop"} | Should -Throw
+
+            $FileLock.close()
+        }
+        It "Locked file in target folder"{
+            $FileLock = [System.IO.File]::Open("$((Get-PSDrive "TestDrive").Root)\Target\Lock\File.txt", "Open", "Read")
+
+            {Create-Symlinks -Group $TestGroup -ErrorAction "stop"} | Should -Not -Throw
+
+            $FileLock.close()
+        }
+    }
     Context "Folder exist as file"{
+        BeforeAll{
+            Set-Content "$TestGroup\settings\symlinks.ini" "[TestDrive:\Links]
+FileTest=TestDrive:\Original\FileTest"
+        }
         It "LinkPath is file"{
             New-Item "TestDrive:\Original\FileTest" -ItemType "directory" -Force
             New-Item "TestDrive:\Original\FileTest\File" -ItemType "file" -Force
             New-Item "TestDrive:\Links\FileTest" -ItemType "file" -Force
 
-            {Create-Symlinks -Group $TestGroup -FileName "symlinks_file.ini" -ErrorAction "stop"} | Should -Throw
+            {Create-Symlinks -Group $TestGroup -ErrorAction "stop"} | Should -Throw
+            Test-Symlink "TestDrive:\Original\FileTest" | Should -Be $false
         }
         It "Original path is file"{
             New-Item "TestDrive:\Original\FileTest" -ItemType "file" -Force
             New-Item "TestDrive:\Links\FileTest" -ItemType "directory" -Force
 
-            {Create-Symlinks -Group $TestGroup -FileName "symlinks_file.ini" -ErrorAction "stop"} | Should -Throw
+            {Create-Symlinks -Group $TestGroup -ErrorAction "stop"} | Should -Throw
             Test-Symlink "TestDrive:\Original\FileTest" | Should -Be $false
         }
     }
