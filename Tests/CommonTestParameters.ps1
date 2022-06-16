@@ -1,4 +1,4 @@
-Set-Variable -Name "TestGroup" -Value "Tests\testGroup" -Scope Script
+Set-Variable -Name "TestConfiguration" -Value "Tests\testConfiguration" -Scope Script
 
 Mock -CommandName Write-Host -MockWith {}
 Mock -CommandName Write-Debug -MockWith {}

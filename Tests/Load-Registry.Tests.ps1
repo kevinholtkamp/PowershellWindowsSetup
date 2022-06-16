@@ -15,21 +15,21 @@ Describe "Load-Registry"{
     }
     Context "Correct files"{
         It "Default test file"{
-            "$TestGroup\settings\registry.reg" | Should -FileContentMatchMultiline $Regex
+            "$TestConfiguration\settings\registry.reg" | Should -FileContentMatchMultiline $Regex
         }
     }
     Context "Files with errors"{
         It "Broken header"{
-            "$TestGroup\settings\registry_brokenHeader.reg" | Should -Not -FileContentMatchMultiline $Regex
+            "$TestConfiguration\settings\registry_brokenHeader.reg" | Should -Not -FileContentMatchMultiline $Regex
         }
         It "Broken Location"{
-            "$TestGroup\settings\registry_brokenLocation.reg" | Should -Not -FileContentMatchMultiline $Regex
+            "$TestConfiguration\settings\registry_brokenLocation.reg" | Should -Not -FileContentMatchMultiline $Regex
         }
         It "Broken Key"{
-            "$TestGroup\settings\registry_brokenKey.reg" | Should -Not -FileContentMatchMultiline $Regex
+            "$TestConfiguration\settings\registry_brokenKey.reg" | Should -Not -FileContentMatchMultiline $Regex
         }
         It "Broken Value"{
-            "$TestGroup\settings\registry_brokenValue.reg" | Should -Not -FileContentMatchMultiline $Regex
+            "$TestConfiguration\settings\registry_brokenValue.reg" | Should -Not -FileContentMatchMultiline $Regex
         }
     }
 }

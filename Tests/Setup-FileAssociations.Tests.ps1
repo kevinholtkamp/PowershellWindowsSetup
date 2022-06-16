@@ -12,16 +12,16 @@ Describe "Setup-FileAssociations"{
 
             $AssociationBefore | Should -Not -Be "C:\Windows\system32\notepad.exe"
 
-            Set-Content "$TestGroup\settings\associations.ini" '[associations]
+            Set-Content "$TestConfiguration\settings\associations.ini" '[associations]
 .csv="C:\Windows\system32\notepad.exe"'
         }
         AfterAll{
             Create-Association ".csv" $AssociationBefore
 
-            Remove-Item "$TestGroup\settings\associations.ini"
+            Remove-Item "$TestConfiguration\settings\associations.ini"
         }
         It "Setting Editor for .csv"{
-            Setup-FileAssociations -Group $TestGroup
+            Setup-FileAssociations -Configuration $TestConfiguration
             cmd.exe /c "assoc .csv" | Should -Be ".csv=csvfile"
         }
     }

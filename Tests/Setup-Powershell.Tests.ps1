@@ -11,15 +11,15 @@ Describe "Setup-Powershell"{
             Mock Install-PackageProvider {}
             Mock Install-Module {}
 
-            Set-Content "$TestGroup\powershell\module.txt" "PSWinRAR"
-            Set-Content "$TestGroup\powershell\packageprovider.txt" "NuGet"
+            Set-Content "$TestConfiguration\powershell\module.txt" "PSWinRAR"
+            Set-Content "$TestConfiguration\powershell\packageprovider.txt" "NuGet"
         }
         AfterAll{
-            Remove-Item "$TestGroup\powershell\module.txt"
-            Remove-Item "$TestGroup\powershell\packageprovider.txt"
+            Remove-Item "$TestConfiguration\powershell\module.txt"
+            Remove-Item "$TestConfiguration\powershell\packageprovider.txt"
         }
         It "Testing install"{
-            Setup-Powershell -Group $TestGroup
+            Setup-Powershell -Configuration $TestConfiguration
 
             Should -Invoke Update-Help -Exactly -Times 1
             Should -Invoke Get-PackageProvider -Exactly -Times 1 -ParameterFilter {"NuGet"}
