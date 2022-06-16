@@ -2,22 +2,30 @@ BeforeAll {
     . .\Tests\CommonTestParameters.ps1
 
     . .\functions.ps1
+    . .\setup.ps1
 }
 
-#Testing the helper function Create-Association since Setup-FileAssociations is just a wrapper and ini reader
 Describe "Setup-FileAssociations"{
     Context "Setup-FileAssociations"{
         BeforeAll{
             $AssociationBefore = cmd.exe /c "assoc .csv"
-            $AssociationBefore = $AssociationBefore.Split('=')[1]
+            if($AssociationBefore){
+                $AssociationBefore = $AssociationBefore.Split('=')[1]
+            }
+
+            $AssociationBefore | Should -Not -Be "C:\Windows\system32\notepad.exe"
+
+            Set-Content "$TestGroup\settings\associations.ini" '[associations]
+.csv="C:\Windows\system32\notepad.exe"'
         }
         AfterAll{
             Create-Association ".csv" $AssociationBefore
+
+            Remove-Item "$TestGroup\settings\associations.ini"
         }
         It "Setting Editor for .csv"{
-#            Setup-FileAssociations -Group $TestGroup
-            Create-Association ".csv" "C:\Windows\system32\notepad.exe"
-            cmd.exe /c "assoc .csv" | Should -Be ".csv=C:\Windows\system32\notepad.exe"
+            Setup-FileAssociations -Group $TestGroup
+            cmd.exe /c "assoc .csv" | Should -Be ".csv=csvfile"
         }
     }
 }
