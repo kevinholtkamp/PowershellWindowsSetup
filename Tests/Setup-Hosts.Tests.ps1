@@ -9,7 +9,7 @@ Describe "Setup-Hosts"{
     Context "Setup-Hosts"{
         BeforeAll{
             $DebugPreference = "continue"
-            Setup-Hosts -Group $TestGroup
+            Setup-Hosts -Configuration $TestConfiguration
             $DebugPreference = "silentlycontinue"
         }
         It "Importing hosts from file"{

@@ -1,4 +1,4 @@
-Set-Variable -Name "TestGroup" -Value "Tests\testGroup" -Scope Global
+Set-Variable -Name "TestConfiguration" -Value "Tests\testConfiguration" -Scope Global
 
 if(!(Get-InstalledModule PsIni -ErrorAction "silentlyContinue")){
     Install-Module -Name PsIni -Force -Confirm:$false

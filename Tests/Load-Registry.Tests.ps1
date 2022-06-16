@@ -9,7 +9,7 @@ Describe "Load-Registry"{
     Context "Load-Registry"{
         BeforeAll{
             $DebugPreference = "continue"
-            Load-Registry -Group $TestGroup
+            Load-Registry -Configuration $TestConfiguration
             $DebugPreference = "silentlycontinue"
         }
         It "Import registry keys"{

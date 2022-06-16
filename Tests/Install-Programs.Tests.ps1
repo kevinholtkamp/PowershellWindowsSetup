@@ -9,7 +9,7 @@ Describe "Install-Programs"{
     Context "Install-Programs"{
         BeforeAll{
             $DebugPreference = "continue"
-            Install-Programs -Group $TestGroup
+            Install-Programs -Configuration $TestConfiguration
             $DebugPreference = "silentlycontinue"
         }
         #ToDo Test for chocolatey Repository

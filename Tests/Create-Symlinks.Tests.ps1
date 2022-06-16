@@ -9,7 +9,7 @@ Describe "Create-Symlinks"{
     Context "Create-Symlinks"{
         BeforeAll{
             $DebugPreference = "continue"
-            Create-Symlinks -Group $TestGroup
+            Create-Symlinks -Configuration $TestConfiguration
             $DebugPreference = "silentlycontinue"
         }
         It "Steam config symlink"{

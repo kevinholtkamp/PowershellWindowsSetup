@@ -9,7 +9,7 @@ Describe "Setup-Partitions"{
     #    Context "Setup-Partitions"{
     #        BeforeAll{
     #            $DebugPreference = "continue"
-    #            Setup-Partitions -Group $TestGroup
+    #            Setup-Partitions -Configuration $TestConfiguration
     #            $DebugPreference = "silentlycontinue"
     #        }
     #        #ToDo
