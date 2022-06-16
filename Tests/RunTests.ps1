@@ -86,8 +86,5 @@ Write-Host "Invoking Pester" -ForegroundColor Green
         }
     }
     $PesterResult = Invoke-Pester -Configuration $config
-#    Write-Host ($PesterResult | Select-Object -Property "FailedCount", "PassedCount", "SkippedCount", "NotRunCount", "TotalCount", "CodeCoverage")
-#    if($PesterResult.FailedCount -ne 0){
-#        $PesterResult | Select-Object -Property "Failed" | % {Write-Host $_ -ForegroundColor Red}
-#    }
+    Remove-Item "./testConfiguration" -Recurse -Force
 }
