@@ -7,8 +7,13 @@ Function Test-Symlink($Path){
     }
 }
 Function Get-SymlinkTarget($Path){
-    if(Test-Path $Path){
-        ((Get-Item $Path | Select-Object -ExpandProperty Target) -replace "^UNC\\","\\")
+    if(Test-Symlink $Path){
+        try{
+            ((Get-Item $Path | Select-Object -ExpandProperty Target) -replace "^UNC\\", "\\")
+        }
+        catch{
+            ""
+        }
     }
     else{
         ""
