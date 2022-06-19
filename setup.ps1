@@ -98,7 +98,7 @@ function Create-Symlinks($Configuration = "default"){
                     Write-Host "No errors occured, applying changes"
                 }
                 catch{
-                    Write-Host "An error occured, rolling back changes"
+                    Write-Host "An error occured, rolling back changes ($($Error[0]))"
                 }
             }
         }
@@ -343,6 +343,13 @@ function Start-Setup($Configuration = "default"){
     Start-Transcript "$Home\Desktop\$(Get-Date -Format "yyyy_MM_dd")_setup.transcript"
 
     if(Test-Path ".\$Configuration\"){
+        #Requirements
+        "PsIni", "Recycle" | % {
+            if(!(Get-InstalledModule $_ -ErrorAction SilentlyContinue)){
+                Install-Module $_ -Force -ErrorAction Stop
+                Import-Module $_ -Force -ErrorAction Stop
+            }
+        }
         Write-Host "Creating Windows Checkpoint"
         Checkpoint-Computer -Description "Before Start-Setup at $(Get-Date)"
         Read-Host "Checkpoint created. Press enter to continue"
