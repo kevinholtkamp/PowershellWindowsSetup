@@ -9,7 +9,7 @@ Describe "Setup-Partitions"{
     AfterAll{
         Remove-Item "$TestConfiguration\settings" -Force -Recurse -ErrorAction SilentlyContinue
     }
-    Context "Setup-Partitions"{
+    Context "Should-work test"{
         BeforeAll{
             Mock Set-Partition {
                 Write-Information "------"
@@ -22,7 +22,7 @@ Describe "Setup-Partitions"{
         AfterAll{
             Remove-Item "$TestConfiguration\settings\partitions.ini"
         }
-        It "Dynamic should-work-test with Serial Number '<SerialNumber>' and drive letters (<Letters>)" -ForEach @(
+        It "Dynamic test with Serial Number '<SerialNumber>' and drive letters (<Letters>)" -ForEach @(
             @{ SerialNumber = "SERIAL"; Letters = @("A", "B") }
             @{ SerialNumber = "SERIAL"; Letters = @("C") }
             @{ SerialNumber = "SERIAL"; Letters = @("F", "X") }
@@ -58,10 +58,16 @@ Describe "Setup-Partitions"{
             Setup-Partitions -Configuration $TestConfiguration
 
             Should -Invoke -CommandName Set-Partition -Exactly -Times ($Letters.Length * 2)
-            Should -Invoke -CommandName Set-Partition -Times 1 -Parameterfilter {$InputObject.DriveNumber -eq 1 -and $InputObject.PartitionNumber -eq 1 -and $NewDriveLetter -eq "A"}
-            Should -Invoke -CommandName Set-Partition -Times 1 -Parameterfilter {$InputObject.DriveNumber -eq 1 -and $InputObject.PartitionNumber -eq 2 -and $NewDriveLetter -eq "B"}
+            $Index = 1
+            foreach($Letter in $Letters){
+                $ParameterfilterScriptblock = [Scriptblock]::Create("{`$InputObject.DriveNumber -eq 1 -and `$InputObject.PartitionNumber -eq $Index -and `$NewDriveLetter -eq '$($Letters[$Index])'}")
+                Should -Invoke -CommandName Set-Partition -Times 1 -Parameterfilter $ParameterfilterScriptblock
+                $Index = $Index + 1
+            }
         }
-        It "Dynamic should-fail-test with Serial Number '<SerialNumber>' and drive letters (<Letters>)" -ForEach @(
+    }
+    Context "Should-fail test"{
+        It "Dynamic test with Serial Number '<SerialNumber>' and drive letters (<Letters>)" -ForEach @(
             @{ SerialNumber = ""; Letters = @("F", "X") }
         ) {
             $GetDiskScriptblock = [Scriptblock]::Create("
@@ -85,7 +91,6 @@ Describe "Setup-Partitions"{
                 $Index = $Index + 1
             }
 
-            $InformationPreference = "continue"
             {Setup-Partitions -Configuration $TestConfiguration} | Should -Throw
         }
     }
