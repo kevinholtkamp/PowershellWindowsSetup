@@ -58,6 +58,13 @@ if(!(Get-InstalledModule Recycle -ErrorAction "silentlyContinue")){
 else{
     Write-Host "Recycle already installed" -ForegroundColor Green
 }
+if(!(Get-InstalledModule PSHelperTools -ErrorAction "silentlyContinue")){
+    Write-Host "Installing PSHelperTools" -ForegroundColor Yellow
+    Install-Module -Name PSHelperTools -Repository $Repository
+}
+else{
+    Write-Host "PSHelperTools already installed" -ForegroundColor Green
+}
 
 Write-Host "Invoking Pester" -ForegroundColor Green
 &{

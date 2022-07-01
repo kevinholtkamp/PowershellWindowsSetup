@@ -14,20 +14,6 @@ Function Get-SymlinkTarget($Path){
         ""
     }
 }
-#Source: https://stackoverflow.com/a/59048942
-Function Create-Association($Extension, $Executable){
-    $Name = cmd /c "assoc $Extension 2>NUL"
-    if($Name){
-    # Association already exists: override it
-        $Name = $Name.Split('=')[1]
-    }
-    else{
-    # Name doesn't exist: create it
-        $Name = "$($Extension.Replace('.', ''))file" # ".log.1" becomes "log1file"
-        cmd /c "assoc $Extension=$Name"
-    }
-    cmd /c "ftype $Name=`"$Executable`" `"%1`""
-}
 Function Join-StringCustom{
     param(
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]

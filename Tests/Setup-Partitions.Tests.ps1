@@ -53,8 +53,6 @@ Describe "Setup-Partitions"{
                 $Index = $Index + 1
             }
 
-            $InformationPreference = "continue"
-            $VerbosePreference = "continue"
             Setup-Partitions -Configuration $TestConfiguration
 
             Should -Invoke -CommandName Set-Partition -Exactly -Times ($Letters.Length * 2)

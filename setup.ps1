@@ -5,9 +5,10 @@ function Setup-FileAssociations($Configuration = "default"){
     Write-Host "Setting up file associations"
     $Associations = Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments
     foreach($Extension in $Associations["associations"].Keys){
-        Write-Verbose "Creating association $($Associations[$Extension]) for file type $Extension"
-        Create-Association $Extension $Associations[$Extension]
-        Write-Verbose "Done creating association $($Associations[$Extension]) for file type $Extension"
+        $File = $Associations["associations"][$Extension]
+        Write-Verbose "Creating association $File for file type $Extension"
+        Register-FTA $File $Extension
+        Write-Verbose "Done creating association $File for file type $Extension"
     }
     Write-Host "Done setting up file associations"
 }
