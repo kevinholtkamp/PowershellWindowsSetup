@@ -28,3 +28,26 @@ Function Create-Association($Extension, $Executable){
     }
     cmd /c "ftype $Name=`"$Executable`" `"%1`""
 }
+Function Join-StringCustom{
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [String[]]
+        $Strings,
+        [String]
+        $Separator
+    )
+    Begin{
+        $Array = [System.Collections.ArrayList]@()
+    }
+    Process{
+        $Array.Add($Strings[0]) | Out-Null
+    }
+    End{
+        $Return = ""
+        for($i = 0; $i -lt $Array.Count - 1; $i = $i + 1){
+            $Return = -join($Return, $Array[$i], $Separator)
+        }
+        $Return = -join($Return, $Array[$Array.Count - 1])
+        $Return
+    }
+}

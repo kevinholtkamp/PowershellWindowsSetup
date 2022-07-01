@@ -296,9 +296,9 @@ function Setup-Partitions($Configuration = "default"){
             foreach($Drive in $Partitions.Keys){
                 foreach($Partition in $Partitions["$Drive"].Keys){
                     Write-Verbose "Assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
-                    $Disk = Get-Disk | Where-Object SerialNumber -EQ "$Drive"
-                    $Partition = Get-Partition -Disk $Disk | Where-Object PartitionNumber -EQ $Partition
-                    Set-Partition -InputObject $Partition -NewDriveLetter $Partitions["$Drive"]["$Partition"]
+                    $DriveObject = Get-Disk | Where-Object SerialNumber -EQ "$Drive"
+                    $PartitionObject = Get-Partition -Disk $DriveObject | Where-Object PartitionNumber -EQ $Partition
+                    Set-Partition -InputObject $PartitionObject -NewDriveLetter $Partitions["$Drive"]["$Partition"]
                     Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
                 }
             }
