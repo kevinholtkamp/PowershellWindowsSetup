@@ -4,12 +4,21 @@ Write-Host "Installing PackageProvider NuGet if not installed already" -Foregrou
 Install-PackageProvider -Name NuGet -Confirm:$false -Force | Out-Null
 $Repository = "CustomRepository"
 if(!(Get-PsRepository "CustomRepository" -ErrorAction SilentlyContinue)){
-    Write-Host "Installing Custom Repo" -ForegroundColor Yellow
-    $Rep = @{
-        Name = "CustomRepository"
-        SourceLocation = "\\raspberrypi\Private\PowershellRepository\"
-        PublishLocation = "\\raspberrypi\Private\PowershellRepository\"
-        InstallationPolicy = "Trusted"
+    Write-Host "Installing Custom Repository" -ForegroundColor Yellow
+    if($env:UserName -eq "WDAGUtilityAccount"){
+        $Rep = @{
+            Name = "CustomRepository"
+            SourceLocation = "C:\Users\WDAGUtilityAccount\PowershellRepository"
+            PublishLocation = "C:\Users\WDAGUtilityAccount\PowershellRepository"
+            InstallationPolicy = "Trusted"
+        }
+    }else{
+        $Rep = @{
+            Name = "CustomRepository"
+            SourceLocation = "\\raspberrypi\Public\PowershellRepository"
+            PublishLocation = "\\raspberrypi\Public\PowershellRepository"
+            InstallationPolicy = "Trusted"
+        }
     }
     &{
         $ErrorActionPreference = "silentlycontinue"
