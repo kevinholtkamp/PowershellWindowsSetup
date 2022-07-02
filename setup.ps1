@@ -1,11 +1,21 @@
 . .\functions.ps1
 
 
-function Setup-FileAssociations($Configuration = "default"){
+function Setup-FileAssociations(){
+    [CmdletBinding()]
+    param(
+    [Parameter(Position = 0, ParameterSetName = 'Configuration')]
+    [String] $Configuration = "default",
+
+    [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
+    [Hashtable] $IniContent
+    )
     Write-Host "Setting up file associations"
-    $Associations = Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments
-    foreach($Extension in $Associations["associations"].Keys){
-        $File = $Associations["associations"][$Extension]
+    if($PSCmdlet.ParameterSetName -eq "Configuration" -and (Test-Path ".\$Configuration\settings\associations.ini")){
+        $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments
+    }
+    foreach($Extension in $IniContent["associations"].Keys){
+        $File = $IniContent["associations"][$Extension]
         Write-Verbose "Creating association $File for file type $Extension"
         Register-FTA $File $Extension
         Write-Verbose "Done creating association $File for file type $Extension"
@@ -13,7 +23,12 @@ function Setup-FileAssociations($Configuration = "default"){
     Write-Host "Done setting up file associations"
 }
 
-function Load-Registry($Configuration = "default"){
+function Load-Registry(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String] $Configuration = "default"
+    )
     if(Test-Path ".\$Configuration\settings\registry.reg"){
         Write-Host "Importing registry file"
         reg import ".\$Configuration\settings\registry.reg"
@@ -25,11 +40,25 @@ function Load-Registry($Configuration = "default"){
 }
 
 function Create-Symlinks(){
-    [Cmdletbinding()]
-    param($Configuration = "default", $FileName = "symlinks.ini")
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0, ParameterSetName = 'Configuration')]
+        [String] $Configuration = "default",
+
+        [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
+        [Hashtable] $IniContent
+    )
     Write-Host "Creating Symlinks"
-    if(Test-path ".\$Configuration\settings\$FileName"){
-        $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\$FileName" -IgnoreComments
+    if($PSCmdlet.ParameterSetName -eq "Configuration"){
+        if(Test-Path ".\$Configuration\settings\symlinks.ini"){
+            $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\symlinks.ini" -IgnoreComments
+        }
+        else{
+            Write-Host "No symlinks.ini file found"
+            return
+        }
+    }
+    if($IniContent){
         foreach($LinkPath in $IniContent.Keys){
             Write-Verbose "Creating Symlinks for LinkPath $LinkPath"
             if(!(Test-Path $LinkPath)){
@@ -115,12 +144,23 @@ function Create-Symlinks(){
         }
     }
     else{
-        Write-Host "No symlinks.ini file found"
+        Write-Host "Ini content is empty"
     }
     Write-Host "Done creating Symlinks"
 }
 
-function Setup-Hosts($Configuration = "default"){
+function Setup-Hosts(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String] $Configuration = "default",
+
+        [Parameter(Position = 1)]
+        [String[]] $Hosts,
+
+        [Parameter(Position = 2, ValueFromRemainingArguments = $true)]
+        [String[]] $FromURL
+    )
     Write-Host "Setting up hosts file"
     if(Test-Path ".\$Configuration\hosts\from-file.txt"){
         Write-Verbose "Adding hosts from file"
@@ -143,10 +183,43 @@ function Setup-Hosts($Configuration = "default"){
     else{
         Write-Verbose "No host from-url file found"
     }
+
+    if($FromURL){
+        Write-Verbose "Adding hosts from url from parameter"
+        foreach($Line in $FromURL){
+            Write-Verbose "Loading hosts from $Line"
+            Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Invoke-WebRequest -URI $Line -UseBasicParsing).Content
+            Write-Verbose "Done loading hosts from $Line"
+        }
+        Write-Verbose "Done adding hosts from url from parameter"
+    }
+    else{
+        Write-Verbose "No from-url parameter found"
+    }
+
+    if($Hosts){
+        Write-Verbose "Adding hosts from parameter"
+        Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value $Hosts
+        Write-Verbose "Done adding hosts from parameter"
+    }
+
+
     Write-Host "Done setting up hosts file"
 }
 
-function Install-Programs($Configuration = "default"){
+function Install-Programs(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String] $Configuration = "default",
+
+        [Parameter(Position = 1)]
+        [String[]] $FromURL,
+        [Parameter(Position = 2)]
+        [String[]] $FromChocolatey,
+        [Parameter(Position = 3)]
+        [String[]] $FromWinget
+    )
     Write-Host "Installing programs"
     foreach($ExeFile in Get-Childitem ".\$Configuration\install\*.exe"){
         Write-Verbose "Installing $ExeFile from file"
@@ -168,6 +241,18 @@ function Install-Programs($Configuration = "default"){
     }
     else{
         Write-Host "No install from-url file found"
+    }
+    if($FromURL){
+        Write-Verbose "Installing from url from parameter"
+        foreach($URL in $FromURL){
+            Write-Verbose "Installing $URL from url"
+            $Index++
+            (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
+            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" -Wait | Out-Null
+            Remove-Item "$($Env:TEMP)\$Index.exe" -Force -ErrorAction "silentlycontinue"
+            Write-Verbose "Done installing $URL from url"
+        }
+        Write-Verbose "Done installing from url from parameter"
     }
 
     if(Test-Path ".\$Configuration\install\from-chocolatey.txt"){
@@ -203,6 +288,7 @@ function Install-Programs($Configuration = "default"){
                 choco pin add -n="$Install"
                 Write-Verbose "Done installing $Install from chocolatey"
             }
+            Write-Verbose "Done installing from chocolatey"
         }
         else{
             Write-Verbose "Chocolatey not installed or requires a restart after install, not installing packages"
@@ -211,6 +297,16 @@ function Install-Programs($Configuration = "default"){
     }
     else{
         Write-Host "No install from-chocolatey file found"
+    }
+    if($FromChocolatey -and (Get-Command "choco" -errorAction SilentlyContinue)){
+        Write-Verbose "Installing from chocolatey from parameter"
+        foreach($Install in $FromChocolatey){
+            Write-Verbose "Installing $Install from chocolatey"
+            choco install $Install --limit-output --ignore-checksum
+            choco pin add -n="$Install"
+            Write-Verbose "Done installing $Install from chocolatey"
+        }
+        Write-Verbose "Done installing from chocolatey from parameter"
     }
 
     if(Test-Path ".\$Configuration\install\from-winget.txt"){
@@ -240,11 +336,28 @@ function Install-Programs($Configuration = "default"){
     else{
         Write-Host "No install from-winget file found"
     }
+    if($FromWinget -and (Get-Command "winget" -errorAction SilentlyContinue)){
+        Write-Verbose "Installing from winget from parameter"
+        foreach($Install in $FromWinget){
+            Write-Verbose "Installing $Install from winget"
+            winget install $Install
+            Write-Verbose "Done installing $Install from winget"
+        }
+        Write-Verbose "Done installing from winget from parameter"
+    }
 
     Write-Host "Done installing programs"
 }
 
-function Remove-Bloatware($Configuration = "default"){
+function Remove-Bloatware(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String] $Configuration = "default",
+
+        [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
+        [String[]] $Bloatwares
+    )
     if(Test-Path ".\$Configuration\install\remove-bloatware.txt"){
         Write-Host "Removing bloatware"
         foreach($AppxPackage in (Get-Content ".\$Configuration\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";*"})){
@@ -257,18 +370,44 @@ function Remove-Bloatware($Configuration = "default"){
     else{
         Write-Host "No remove-bloatware file found"
     }
+
+    if($Bloatwares){
+        Write-Host "Removing bloatware from parameter"
+        foreach($AppxPackage in $Bloatwares){
+            Write-Verbose "Removing $AppxPackage"
+            Get-AppxPackage $AppxPackage | Remove-AppxPackage
+            Write-Verbose "Done removing $AppxPackage"
+        }
+        Write-Host "Done removing bloatware from parameter"
+    }
 }
 
-function Setup-Partitions($Configuration = "default"){
+function Setup-Partitions(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0, ParameterSetName = 'Configuration')]
+        [String] $Configuration = "default",
+
+        [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
+        [Hashtable] $IniContent
+    )
     Write-Host "Setting up partitions"
-    if(Test-Path ".\$Configuration\settings\partitions.ini"){
-        $Partitions = Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments
-        if($null -ne $Partitions){
+    if($PSCmdlet.ParameterSetName -eq "Configuration"){
+        if(Test-Path ".\$Configuration\settings\partitions.ini"){
+            $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments
+        }
+        else{
+            Write-Host "No partitions.ini file found"
+            return
+        }
+    }
+    if($IniContent){
+        if($null -ne $IniContent){
             #Find all driveletters that are wanted
             $UnusableDriveLetters = @()
-            foreach($Drive in $Partitions.Keys){
-                foreach($Partition in $Partitions["$Drive"].Keys){
-                    $UnusableDriveLetters += $Partitions["$Drive"]["$Partition"]
+            foreach($Drive in $IniContent.Keys){
+                foreach($Partition in $IniContent["$Drive"].Keys){
+                    $UnusableDriveLetters += $IniContent["$Drive"]["$Partition"]
                 }
             }
             Write-Verbose "Found all wanted driveletters: $UnusableDriveLetters"
@@ -284,8 +423,8 @@ function Setup-Partitions($Configuration = "default"){
             $UsableDriveLetterIndex = 0
             Write-Verbose "Found all freely usable drive letters (Not used  & not wanted): $UsableDriveLetters"
             #Temporarily assign all partitions to one of those letters
-            foreach($Drive in $Partitions.Keys){
-                foreach($Partition in $Partitions["$Drive"].Keys){
+            foreach($Drive in $IniContent.Keys){
+                foreach($Partition in $IniContent["$Drive"].Keys){
                     Write-Verbose "Assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
                     Get-Disk | Where-Object SerialNumber -EQ "$Drive" | Get-Partition | Where-Object PartitionNumber -EQ $Partition | Set-Partition -NewDriveLetter $UsableDriveLetters[$UsableDriveLetterIndex]
                     Write-Verbose "Done assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
@@ -294,19 +433,19 @@ function Setup-Partitions($Configuration = "default"){
             }
             Write-Verbose "All partitions set to temporary driveletters"
             #Assign all partitions to their wanted letter
-            foreach($Drive in $Partitions.Keys){
-                foreach($Partition in $Partitions["$Drive"].Keys){
-                    Write-Verbose "Assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
+            foreach($Drive in $IniContent.Keys){
+                foreach($Partition in $IniContent["$Drive"].Keys){
+                    Write-Verbose "Assigning partition $Partition of drive $Drive to letter $($IniContent["$Drive"]["$Partition"])"
                     $DriveObject = Get-Disk | Where-Object SerialNumber -EQ "$Drive"
                     $PartitionObject = Get-Partition -Disk $DriveObject | Where-Object PartitionNumber -EQ $Partition
-                    Set-Partition -InputObject $PartitionObject -NewDriveLetter $Partitions["$Drive"]["$Partition"]
-                    Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
+                    Set-Partition -InputObject $PartitionObject -NewDriveLetter $IniContent["$Drive"]["$Partition"]
+                    Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($IniContent["$Drive"]["$Partition"])"
                 }
             }
             Write-Host "Done setting up partitions"
         }
         else{
-            Write-Host "No partition settings in partition file"
+            Write-Host "Ini content is empty"
         }
     }
     else{
@@ -314,7 +453,15 @@ function Setup-Partitions($Configuration = "default"){
     }
 }
 
-function Setup-Powershell($Configuration = "default"){
+function Setup-Powershell(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String] $Configuration = "default",
+
+        [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
+        [String[]] $Modules
+    )
     Write-Host "Setting up Powershell"
     Update-Help -ErrorAction "silentlyContinue"
     if(Test-Path ".\$Configuration\powershell\packageprovider.txt"){
@@ -352,12 +499,33 @@ function Setup-Powershell($Configuration = "default"){
     else{
         Write-Host "No powershell-module file found"
     }
+
+    if($Modules){
+        foreach($PowershellModule in $Modules){
+            if(Get-InstalledModule $PowershellModule -ErrorAction "silentlyContinue"){
+                Write-Verbose "Module $PowershellModule is already installed, skipping..."
+            }
+            else{
+                Write-Verbose "Installing module $PowershellModule"
+                Install-Module -Name $PowershellModule -Force -Confirm:$False
+                Write-Verbose "Done installing module $PowershellModule"
+            }
+        }
+    }
+    else{
+        Write-Host "No powershell modules passed"
+    }
     Write-Host "Done setting up Powershell"
 }
 
 
 
-function Start-Setup($Configuration = "default"){
+function Start-Setup(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String] $Configuration = "default"
+    )
     Start-Transcript "$Home\Desktop\$(Get-Date -Format "yyyy_MM_dd")_setup.transcript"
 
     if(Test-Path ".\$Configuration\"){
