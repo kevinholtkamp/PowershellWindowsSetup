@@ -8,17 +8,17 @@ Additionally, I try to create the script in a way where you can run it again at 
 
 ## How to use
 - Change the values of the files in the `default`-folder according to your requirements and the specifications defined in the [Configuration files section](#Configuration-files), or delete files you do not need
-- Alternatively, create a new folder in the root directory of the project for every user group you need and create all the files in the same format as in the `default`-folder
-- Open a powershell console in the root directory of the project, load the setup.ps1 file and call the function `Start-Setup` with the Group-Parameter set to your user group if you do not use the default group:
+- Alternatively, create a new folder in the root directory of the project for every user Configuration you need and create all the files in the same format as in the `default`-folder
+- Open a powershell console in the root directory of the project, load the setup.ps1 file and call the function `Start-Setup` with the Configuration-Parameter set to your user Configuration if you do not use the default Configuration:
 ```Powershell      
         . .\setup.ps1
-        Start-Setup -Group "default"
+        Start-Setup -Configuration "default"
 ```
 ## Configuration files
-### ./hosts/
+### .\hosts\
 - `from-file.txt` plain text file where each line represents one entry in the windows hosts file format
 - `from-url.txt` plain text file where each line represents a url to a file in the windows hosts file format
-### ./install/
+### .\install\
 - `from-chocolatey.txt` plain text file where each line represents the name of a chocolatey package
 - `from-winget.txt` plain text file where each line represents the name of a winget package
 - `from-url.txt` plain text file where each line represents a url to an executable file
@@ -26,13 +26,13 @@ Additionally, I try to create the script in a way where you can run it again at 
 - `powershell-packageprovider.txt` plain text file where each line represents the name of a powershell package-provider
 - `remove-bloatware.txt` plain text file where each line represents the name of an AppxPackage
 - `chocolatey-repository.ini` ini file where every section corresponds to a chocolatey repository with the keys being the parameters used to create the repository via powershell "splatter"
-### ./quickaccess/
+### .\quickaccess\
 - `folders.txt` plain text file where each line represents the path to a folder
-### ./scheduledTasks/
-- `./scheduledTasks/` can contain none or any number of .xml files which represent a scheduled task in the [Windows task format](http://schemas.microsoft.com/windows/2004/02/mit/task)
-### ./scripts/
-- `./scripts/` can contain custom script files prepend_custom.ps1 and append_custom.ps1 which get executed before and after the other functions respectively
-### ./settings/
+### .\scheduledTasks\
+- `.\scheduledTasks\` can contain none or any number of .xml files which represent a scheduled task in the [Windows task format](http://schemas.microsoft.com/windows/2004/02/mit/task)
+### .\scripts\
+- `.\scripts\` can contain custom script files prepend_custom.ps1 and append_custom.ps1 which get executed before and after the other functions respectively
+### .\settings\
 - `gpedit.txt` text file containing a Windows registry backup in the Windows group policy backup file format
 - `partitions.ini` ini file where each key represents the serial number of a disk and every entry contains the target drive letter for a partition index
 - `registry.reg` reg file containing registry keys in the Windows Registry Editor Version 5.00 format
