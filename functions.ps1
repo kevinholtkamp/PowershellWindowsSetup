@@ -7,26 +7,40 @@ Function Test-Symlink($Path){
     }
 }
 Function Get-SymlinkTarget($Path){
-    if(Test-Path $Path){
-        ((Get-Item $Path | Select-Object -ExpandProperty Target) -replace "^UNC\\","\\")
+    if(Test-Symlink $Path){
+        try{
+            ((Get-Item $Path | Select-Object -ExpandProperty Target) -replace "^UNC\\", "\\")
+        }
+        catch{
+            ""
+        }
     }
     else{
         ""
     }
 }
-#Source: https://stackoverflow.com/a/59048942
-Function Create-Association($Extension, $Executable){
-    $Name = cmd /c "assoc $Extension 2>NUL"
-    if($Name){
-    # Association already exists: override it
-        $Name = $Name.Split('=')[1]
+Function Join-StringCustom{
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [String[]]
+        $Strings,
+        [String]
+        $Separator
+    )
+    Begin{
+        $Array = [System.Collections.ArrayList]@()
     }
-    else{
-    # Name doesn't exist: create it
-        $Name = "$($Extension.Replace('.', ''))file" # ".log.1" becomes "log1file"
-        cmd /c 'assoc $ext=$name'
+    Process{
+        $Array.Add($Strings[0]) | Out-Null
     }
-    cmd /c "ftype $Name=`"$Executable`" `"%1`""
+    End{
+        $Return = ""
+        for($i = 0; $i -lt $Array.Count - 1; $i = $i + 1){
+            $Return = -join($Return, $Array[$i], $Separator)
+        }
+        $Return = -join($Return, $Array[$Array.Count - 1])
+        $Return
+    }
 }
 #Which Verb? Format? Optimize? Convert? Resolve? Unify is unapproved but fitting
 Function Format-Path(){

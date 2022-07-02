@@ -1,2 +1,0 @@
-PuTTY.PuTTY
-RARLab.WinRAR
