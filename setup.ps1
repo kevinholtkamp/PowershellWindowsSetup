@@ -1,6 +1,3 @@
-. .\functions.ps1
-
-
 function Setup-FileAssociations($Configuration = "default"){
     Write-Host "Setting up file associations"
     $Associations = Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments
