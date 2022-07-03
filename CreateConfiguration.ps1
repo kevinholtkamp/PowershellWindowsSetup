@@ -1,4 +1,9 @@
 #Requires -Version 6.2
+if(!(Get-InstalledModule "PSHelperTools" -ErrorAction SilentlyContinue -MinimumVersion "0.0.5")){
+    Install-Module PSHelperTools -RequiredVersion "0.0.5" -Force -SkipPublisherCheck -ErrorAction "stop"
+    Import-Module PSHelperTools -RequiredVersion "0.0.5"
+}
+
 
 function PromptN($Item){
     $Return = [System.Collections.ArrayList]@()
@@ -11,6 +16,23 @@ function PromptN($Item){
     }
     $Return
 }
+function PromptYesNo($Prompt){
+    Write-Host "$Prompt (yes/no): " -ForegroundColor Blue -NoNewline
+    while($true){
+        $Answer = Read-Host
+        $Answer = $Answer.ToLower()
+        if($Answer -eq "yes" -or $Answer -eq "y"){
+            return $true
+        }
+        elseif ($Answer -eq "no" -or $Answer -eq "n"){
+            return $false
+        }
+        Write-Host "Please enter a valid answer: " -ForegroundColor Red -NoNewline
+    }
+}
+
+
+
 #Configuration name
 do{
     Write-Host "Enter configuration name: " -ForegroundColor Blue -NoNewline
@@ -24,10 +46,14 @@ do{
 #hosts
     $Hosts = @{}
     #from file
-    Write-Host "Reading host file entries from current installation" -ForegroundColor Green
-    $Hosts["FromFile"] = Get-Content "$($Env:WinDir)\system32\Drivers\etc\hosts" | ForEach-Object {$_.Split("#")[0].Trim()} | Where-Object {!$_.Equals("")}
+    if(PromptYesNo "Do you want to add host-file entries from your current installation?"){
+        Write-Host "Reading host file entries from current installation" -ForegroundColor Green
+        $Hosts["FromFile"] = Get-Content "$($Env:WinDir)\system32\Drivers\etc\hosts" | ForEach-Object {$_.Split("#")[0].Trim()} | Where-Object {!$_.Equals("")}
+    }
+    #Manual entries for use in from file
+    $Hosts["FromFile"].Add((PromptN "host file entries (Format: <IP> <Domain>)"))
     #from url
-    $Hosts["FromURL"] = PromptN "URL"
+    $Hosts["FromURL"] = PromptN "URLs with host file entries"
 
 #install
     $Install = @{}
@@ -36,16 +62,20 @@ do{
     #from url
     $Install["FromURL"] = PromptN "URLs for installation"
     #choco
-    if(Get-Command "choco" -ErrorAction SilentlyContinue){
-        Write-Host "Reading installed choco packages from current installation" -ForegroundColor Green
-        $Install["FromChocolatey"] = (choco list -localonly --limitoutput | ForEach-Object {$_.Split("|")[0]})
+    if(PromptYesNo "Do you want to read all installed chocolatey packages?"){
+        if(Get-Command "choco" -ErrorAction SilentlyContinue){
+            Write-Host "Reading installed choco packages from current installation" -ForegroundColor Green
+            $Install["FromChocolatey"] = (choco list -localonly --limitoutput | ForEach-Object {$_.Split("|")[0]})
+        }
     }
     #winget
-    if(Get-Command "winget" -ErrorAction SilentlyContinue){
-        Write-Host "Reading installed winget packages from current installation" -ForegroundColor Green
-        & winget export ".\from-winget.json" | Out-Null
-        $Install["FromWinget"] = Get-Content ".\from-winget.json"
-        Remove-Item ".\from-winget.json"
+    if(PromptYesNo "Do you want to read all installed winget packages?"){
+        if(Get-Command "winget" -ErrorAction SilentlyContinue){
+            Write-Host "Reading installed winget packages from current installation" -ForegroundColor Green
+            & winget export ".\from-winget.json" | Out-Null
+            $Install["FromWinget"] = Get-Content ".\from-winget.json"
+            Remove-Item ".\from-winget.json"
+        }
     }
     #Remove bloatware
     $Install["RemoveBloatware"] = PromptN "bloatwares (wildcards permitted)"
@@ -53,11 +83,15 @@ do{
 #powershell
     $Powershell = @{}
     #module
-    Write-Host "Reading installed powershell modules from current installation" -ForegroundColor Green
-    $Powershell["Module"] = Get-InstalledModule | ForEach-Object {$_.Name}
+    if(PromptYesNo "Do you want to read all installed powershell modules?"){
+        Write-Host "Reading installed powershell modules from current installation" -ForegroundColor Green
+        $Powershell["Module"] = Get-InstalledModule | ForEach-Object {$_.Name}
+    }
     #packageprovider
-    Write-Host "Reading installed package providers from current installation" -ForegroundColor Green
-    $Powershell["PackageProvider"] = Get-PackageProvider | ForEach-Object {$_.Name}
+    if(PromptYesNo "Do you want to read all installed powershell package providers?"){
+        Write-Host "Reading installed package providers from current installation" -ForegroundColor Green
+        $Powershell["PackageProvider"] = Get-PackageProvider | ForEach-Object {$_.Name}
+    }
 
 #scripts
     #prepend
@@ -68,6 +102,7 @@ do{
     #associations
     $Settings["FileAssociations"] = PromptN "file associations (format: .csv=C:\windows\system32\notepad.exe)"
     #partitions
+    if(PromptYesNo "Do you want to read the partition letters from the current installation?"){
     Write-Host "Reading partition letters from current installation" -ForegroundColor Green
     $Settings["Partitions"] = [System.Collections.ArrayList]@()
     Get-Disk | `
@@ -76,15 +111,19 @@ do{
             Get-Partition $_.Number | `
                 ForEach-Object {`
                     if($_.DriveLetter -and $_.DriveLetter -ne "C"){$Settings["Partitions"].Add("$($_.PartitionNumber)=$($_.DriveLetter)") | Out-Null}}}
+    }
     #registry
     #symlinks
-    $FoldersToSearch = @("$env:USERPROFILE\AppData", "D:\", "E:\", "C:\Users\Public\Documents\")
-    Write-Host "Finding symlinks in the following paths: $FoldersToSearch" -ForegroundColor Green
-    . .\functions.ps1
-    $Settings["Symlinks"] = [System.Collections.ArrayList]@()
-    $Links = @{}
-    foreach($Folder in $FoldersToSearch){
-        $LLinks = Get-ChildItem $Folder -Recurse -ErrorAction SilentlyContinue | `
+    if(PromptYesNo "Do you want to read symlinks from current installation?"){
+        $FoldersToSearch = PromptN "folders to search for symlinks"
+        if(!$FoldersToSearch){
+            $FoldersToSearch = @("$env:USERPROFILE\AppData", "D:\", "E:\", "C:\Users\Public\Documents\")
+        }
+        Write-Host "Finding symlinks in the following paths: $FoldersToSearch" -ForegroundColor Green
+        $Settings["Symlinks"] = [System.Collections.ArrayList]@()
+        $Links = @{}
+        foreach($Folder in $FoldersToSearch){
+            $LLinks = Get-ChildItem $Folder -Recurse -ErrorAction SilentlyContinue | `
             Where-Object {Get-SymlinkTarget $_.FullName} | `
                 ForEach-Object `
                     -Begin {
@@ -94,22 +133,23 @@ do{
             } -End {
                 $Out
             }
-        $Links += $LLinks
-    }
-    $UsedDriveLetters = $Links.Values | ForEach-Object {
-        (Get-Item $_ -ErrorAction SilentlyContinue).Root
-    } | Select-Object -Unique
-    foreach($Letter in $UsedDriveLetters){
-        $Settings["Symlinks"].Add("[$($Letter.ToString().TrimEnd("\") )]") | Out-Null
-        $Temp = [System.Collections.ArrayList]@()
-        foreach($Link in $Links.Keys){
-            $Value = $Links[$Link]
-            if($Value.StartsWith($Letter)){
-                $Temp.Add("$($Value.ToString().Substring($Letter.Length + 2) )=$Link") | Out-Null
-            }
+            $Links += $LLinks
         }
-        $Temp | Sort-Object | ForEach-Object {
-            $Settings["Symlinks"].Add($_) | Out-Null
+        $UsedDriveLetters = $Links.Values | ForEach-Object {
+            (Get-Item $_ -ErrorAction SilentlyContinue).Root
+        } | Select-Object -Unique
+        foreach($Letter in $UsedDriveLetters){
+            $Settings["Symlinks"].Add("[$($Letter.ToString().TrimEnd("\"))]") | Out-Null
+            $Temp = [System.Collections.ArrayList]@()
+            foreach($Link in $Links.Keys){
+                $Value = $Links[$Link]
+                if($Value.StartsWith($Letter)){
+                    $Temp.Add("$($Value.ToString().Substring($Letter.Length + 2))=$Link") | Out-Null
+                }
+            }
+            $Temp | Sort-Object | ForEach-Object {
+                $Settings["Symlinks"].Add($_) | Out-Null
+            }
         }
     }
 
@@ -121,9 +161,8 @@ Write-Host "Install: $($Install.ToString())"
 Write-Host "Powershell: $($Powershell.ToString())"
 Write-Host "Settings: $($Settings.ToString())"
 
-Write-Host "Want to save? (y/n)" -ForegroundColor Magenta -NoNewline
-$Answer = Read-Host
-if($Answer -eq "y"){
+
+if(PromptYesNo "Want to save this configuration?"){
     New-Item ".\$ConfigurationName" -ItemType Directory | Out-Null
     Push-Location ".\$ConfigurationName"
 
@@ -134,6 +173,10 @@ if($Answer -eq "y"){
     if($Hosts["FromFile"]){
         New-Item ".\hosts\from-file.txt" -ItemType File | Out-Null
         Set-Content ".\hosts\from-file.txt" $Hosts["FromFile"]
+    }
+    if($Hosts["FromURL"]){
+        New-Item ".\hosts\from-url.txt" -ItemType File | Out-Null
+        Set-Content ".\hosts\from-url.txt" $Hosts["FromURL"]
     }
     #install
     if($Install){
@@ -146,6 +189,14 @@ if($Answer -eq "y"){
     if($Install["FromWinget"]){
         New-Item ".\install\from-winget.json" -ItemType File | Out-Null
         Set-Content ".\install\from-winget.json" $Install["FromWinget"]
+    }
+    if($Install["FromURL"]){
+        New-Item ".\install\from-url.txt" -ItemType File | Out-Null
+        Set-Content ".\install\from-url.txt" $Install["FromURL"]
+    }
+    if($Install["RemoveBloatware"]){
+        New-Item ".\install\remove-bloatware.txt" -ItemType File | Out-Null
+        Set-Content ".\install\remove-bloatware.txt" $Install["RemoveBloatware"]
     }
     #powershell
     if($Powershell){
@@ -171,6 +222,11 @@ if($Answer -eq "y"){
     if($Settings["Symlinks"]){
         New-Item ".\settings\symlinks.ini" -ItemType File | Out-Null
         Set-Content ".\settings\symlinks.ini" $Settings["Symlinks"]
+    }
+    if($Settings["FileAssociations"]){
+        New-Item ".\settings\associations.ini" -ItemType File | Out-Null
+        Set-Content ".\settings\associations.ini" "[associations]"
+        Add-Content ".\settings\associations.ini" $Settings["FileAssociations"]
     }
 
     Pop-Location
