@@ -1,13 +1,11 @@
-. .\functions.ps1
-
-
 function Setup-FileAssociations($Configuration = "default"){
     Write-Host "Setting up file associations"
     $Associations = Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments
-    foreach($Extension in $Associations.Keys){
-        Write-Verbose "Creating association $($Associations[$Extension]) for file type $Extension"
-        Create-Association $Extension $Associations[$Extension]
-        Write-Verbose "Done creating association $($Associations[$Extension]) for file type $Extension"
+    foreach($Extension in $Associations["associations"].Keys){
+        $File = $Associations["associations"][$Extension]
+        Write-Verbose "Creating association $File for file type $Extension"
+        Register-FTA $File $Extension
+        Write-Verbose "Done creating association $File for file type $Extension"
     }
     Write-Host "Done setting up file associations"
 }
@@ -23,10 +21,12 @@ function Load-Registry($Configuration = "default"){
     }
 }
 
-function Create-Symlinks($Configuration = "default"){
+function Create-Symlinks(){
+    [Cmdletbinding()]
+    param($Configuration = "default", $FileName = "symlinks.ini")
     Write-Host "Creating Symlinks"
-    if(Test-path ".\$Configuration\settings\symlinks.ini"){
-        $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\symlinks.ini" -IgnoreComments
+    if(Test-path ".\$Configuration\settings\$FileName"){
+        $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\$FileName" -IgnoreComments
         foreach($LinkPath in $IniContent.Keys){
             Write-Verbose "Creating Symlinks for LinkPath $LinkPath"
             if(!(Test-Path $LinkPath)){
@@ -37,10 +37,55 @@ function Create-Symlinks($Configuration = "default"){
                 $Path = $Links[$Name]
                 Write-Verbose "Create-Symlink: $Name | $($Path):"
                 try{
-                    if(Test-Path $Path){
-                        Write-Verbose "Local folder exists"
-                        if(!(Test-Symlink "$Path")){
-                            Write-Verbose "Local folder is no Symlink yet"
+                    & {
+                        $ErrorActionPreference = "stop"
+                        if(Test-Path $Path){
+                            Write-Verbose "Local folder exists"
+                            if(!(Test-Symlink "$Path")){
+                                Write-Verbose "Local folder is no Symlink yet"
+                                if(!(Test-Path "$LinkPath\$Name")){
+                                    Write-Verbose "Does not exist in LinkPath"
+                                    New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
+                                    Write-Verbose "New folder created in LinkPath"
+                                }
+                                else{
+                                    Write-Verbose "Exists in LinkPath"
+                                }
+                                Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse -Force
+                                Write-Verbose "Copied to LinkPath sucessfully"
+                                Remove-ItemSafely -Path $Path -Recurse -Force
+                                Write-Verbose "Removed old folder"
+                                New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
+                                Write-Verbose "SymLink created sucessfully"
+                            }
+                            else{
+                                Write-Verbose "Local folder is a SymLink already"
+                                if(!(Test-Path "$LinkPath\$Name")){
+                                    Write-Verbose "But does not exist in LinkPath"
+                                    New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
+                                    Write-Verbose "New folder created in LinkPath"
+                                }
+                                else{
+                                    Write-Verbose "Exists in LinkPath"
+                                }
+                                if(Compare-Paths -First $Path -Second "$LinkPath\$Name"){
+                                    Write-Verbose "Symlink exists, but has a wrong target"
+                                    Write-Verbose "Target: $LinkPath\$Name"
+                                    Write-Verbose "Wanted Target: $(Get-SymlinkTarget $Path)"
+                                    Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse -Force
+                                    Write-Verbose "Everything copied from false target"
+                                    Remove-ItemSafely -Path $Path
+                                    Write-Verbose "Old symlink removed"
+                                    New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
+                                    Write-Verbose "New Symlink created"
+                                }
+                                else{
+                                    Write-Verbose "Symlink exists and has the correct target, no changes need to be made"
+                                }
+                            }
+                        }
+                        else{
+                            Write-Verbose "Local folder does not exist"
                             if(!(Test-Path "$LinkPath\$Name")){
                                 Write-Verbose "Does not exist in LinkPath"
                                 New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
@@ -49,56 +94,19 @@ function Create-Symlinks($Configuration = "default"){
                             else{
                                 Write-Verbose "Exists in LinkPath"
                             }
-                            Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
-                            Write-Verbose "Copied to LinkPath sucessfully"
-                            Remove-ItemSafely -Path $Path -Recurse -Force
-                            Write-Verbose "Removed old folder"
                             New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
-                            Write-Verbose "SymLink created sucessfully"
+                            Write-Verbose "Symlink created successfully"
                         }
-                        else{
-                            Write-Verbose "Local folder is a SymLink already"
-                            if(!(Test-Path "$LinkPath\$Name")){
-                                Write-Verbose "But does not exist in LinkPath"
-                                New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
-                                Write-Verbose "New folder created in LinkPath"
-                            }
-                            else{
-                                Write-Verbose "Exists in LinkPath"
-                            }
-                            if((Get-SymlinkTarget $Path) -ne "$LinkPath\$Name"){
-                                Write-Verbose "Symlink exists, but has a wrong target"
-                                Write-Verbose "Target: $LinkPath\$Name"
-                                Write-Verbose "Wanted Target: $(Get-SymlinkTarget $Path)"
-                                Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse
-                                Write-Verbose "Everything copied from false target"
-                                Remove-ItemSafely -Path $Path
-                                Write-Verbose "Old symlink removed"
-                                New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
-                                Write-Verbose "New Symlink created"
-                            }
-                            else{
-                                Write-Verbose "Symlink exists and has the correct target, no changes need to be made"
-                            }
-                        }
+                        Write-Host "No errors occured, applying changes"
                     }
-                    else{
-                        Write-Verbose "Local folder does not exist"
-                        if(!(Test-Path "$LinkPath\$Name")){
-                            Write-Verbose "Does not exist in LinkPath"
-                            New-Item -Path "$LinkPath\" -Name "$Name" -ItemType "directory" -Force
-                            Write-Verbose "New folder created in LinkPath"
-                        }
-                        else{
-                            Write-Verbose "Exists in LinkPath"
-                        }
-                        New-Item -Path $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
-                        Write-Verbose "Symlink created successfully"
-                    }
-                    Write-Host "No errors occured, applying changes"
                 }
                 catch{
-                    Write-Host "An error occured, rolling back changes"
+                    if($ErrorActionPreference -eq "Stop"){
+                        throw "An error occured; stopping symlink creation"
+                    }
+                    else{
+                        Write-Error "An error occured; stopping current symlink creation"
+                    }
                 }
             }
         }
@@ -139,7 +147,7 @@ function Install-Programs($Configuration = "default"){
     Write-Host "Installing programs"
     foreach($ExeFile in Get-Childitem ".\$Configuration\install\*.exe"){
         Write-Verbose "Installing $ExeFile from file"
-        & $ExeFile
+        Start-Process -FilePath "$ExeFile" -ArgumentList "/S"
         Write-Verbose "Done installing $ExeFile from file"
     }
 
@@ -149,7 +157,8 @@ function Install-Programs($Configuration = "default"){
             Write-Verbose "Installing $URL from url"
             $Index++
             (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
-            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" | Out-Null
+            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" -Wait | Out-Null
+            Remove-Item "$($Env:TEMP)\$Index.exe" -Force -ErrorAction "silentlycontinue"
             Write-Verbose "Done installing $URL from url"
         }
         Write-Verbose "Done installing from url"
@@ -208,7 +217,6 @@ function Install-Programs($Configuration = "default"){
                 Write-Verbose "Done installing winget"
             }
             else{
-                Stop-Job $WingetJob
                 Write-Verbose "Timout while installing winget, skipping..."
             }
         }
@@ -252,44 +260,51 @@ function Setup-Partitions($Configuration = "default"){
     Write-Host "Setting up partitions"
     if(Test-Path ".\$Configuration\settings\partitions.ini"){
         $Partitions = Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments
-        #Find all driveletters that are wanted
-        $UnusableDriveLetters = @()
-        foreach($Drive in $Partitions.Keys){
-            foreach($Partition in $Partitions["$Drive"].Keys){
-                $UnusableDriveLetters += $Partitions["$Drive"]["$Partition"]
+        if($null -ne $Partitions){
+            #Find all driveletters that are wanted
+            $UnusableDriveLetters = @()
+            foreach($Drive in $Partitions.Keys){
+                foreach($Partition in $Partitions["$Drive"].Keys){
+                    $UnusableDriveLetters += $Partitions["$Drive"]["$Partition"]
+                }
             }
-        }
-        Write-Verbose "Found all wanted driveletters: $UnusableDriveLetters"
-        #Find all drive letters that are currently in use
-        $UnusableDriveLetters += (Get-PSDrive).Root -match "^[A-Z]:\\"
-        Write-Verbose "Found all wanted and currently used driveletters: $UnusableDriveLetters"
-        #Find all free usable drive letters (Not currently used and not wanted)
-        65..90|foreach-object{
-            if(-not $UnusableDriveLetters.Contains("$([char]$_):\")){
-                $UsableDriveLetters += [char]$_
+            Write-Verbose "Found all wanted driveletters: $UnusableDriveLetters"
+            #Find all drive letters that are currently in use
+            $UnusableDriveLetters += ((Get-PSDrive).Root -match "^[A-Z]:\\").Substring(0, 1)
+            Write-Verbose "Found all wanted and currently used driveletters: $UnusableDriveLetters"
+            #Find all free usable drive letters (Not currently used and not wanted)
+            65..90|foreach-object{
+                if(-not $UnusableDriveLetters.Contains("$([char]$_)")){
+                    $UsableDriveLetters += [char]$_
+                }
             }
-        }
-        $UsableDriveLetterIndex = 0
-        Write-Verbose "Found all freely usable drive letters (Not used  & not wanted): $UsableDriveLetters"
-        #Temporarily assign all partitions to one of those letters
-        foreach($Drive in $Partitions.Keys){
-            foreach($Partition in $Partitions["$Drive"].Keys){
-                Write-Verbose "Assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
-                Get-Disk | Where-Object SerialNumber -EQ "$Drive" | Get-Partition | Where-Object PartitionNumber -EQ $Partition | Set-Partition -NewDriveLetter $UsableDriveLetters[$UsableDriveLetterIndex]
-                $UsableDriveLetterIndex++
-                Write-Verbose "Done assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
+            $UsableDriveLetterIndex = 0
+            Write-Verbose "Found all freely usable drive letters (Not used  & not wanted): $UsableDriveLetters"
+            #Temporarily assign all partitions to one of those letters
+            foreach($Drive in $Partitions.Keys){
+                foreach($Partition in $Partitions["$Drive"].Keys){
+                    Write-Verbose "Assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
+                    Get-Disk | Where-Object SerialNumber -EQ "$Drive" | Get-Partition | Where-Object PartitionNumber -EQ $Partition | Set-Partition -NewDriveLetter $UsableDriveLetters[$UsableDriveLetterIndex]
+                    Write-Verbose "Done assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
+                    $UsableDriveLetterIndex++
+                }
             }
-        }
-        Write-Verbose "All partitions set to temporary driveletters"
-        #Assign all partitions to their wanted letter
-        foreach($Drive in $Partitions.Keys){
-            foreach($Partition in $Partitions["$Drive"].Keys){
-                Write-Verbose "Assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
-                Get-Disk | Where-Object SerialNumber -EQ "$Drive" | Get-Partition | Where-Object PartitionNumber -EQ $Partition | Set-Partition -NewDriveLetter $Partitions["$Drive"]["$Partition"]
-                Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
+            Write-Verbose "All partitions set to temporary driveletters"
+            #Assign all partitions to their wanted letter
+            foreach($Drive in $Partitions.Keys){
+                foreach($Partition in $Partitions["$Drive"].Keys){
+                    Write-Verbose "Assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
+                    $DriveObject = Get-Disk | Where-Object SerialNumber -EQ "$Drive"
+                    $PartitionObject = Get-Partition -Disk $DriveObject | Where-Object PartitionNumber -EQ $Partition
+                    Set-Partition -InputObject $PartitionObject -NewDriveLetter $Partitions["$Drive"]["$Partition"]
+                    Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($Partitions["$Drive"]["$Partition"])"
+                }
             }
+            Write-Host "Done setting up partitions"
         }
-        Write-Host "Done setting up partitions"
+        else{
+            Write-Host "No partition settings in partition file"
+        }
     }
     else{
         Write-Host "No partition file found"
@@ -343,6 +358,13 @@ function Start-Setup($Configuration = "default"){
     Start-Transcript "$Home\Desktop\$(Get-Date -Format "yyyy_MM_dd")_setup.transcript"
 
     if(Test-Path ".\$Configuration\"){
+        #Requirements
+        "PsIni", "Recycle", "PSHelperTools" | % {
+            if(!(Get-InstalledModule $_ -ErrorAction SilentlyContinue)){
+                Install-Module $_ -Force -ErrorAction Stop
+                Import-Module $_ -Force -ErrorAction Stop
+            }
+        }
         Write-Host "Creating Windows Checkpoint"
         Checkpoint-Computer -Description "Before Start-Setup at $(Get-Date)"
         Read-Host "Checkpoint created. Press enter to continue"
