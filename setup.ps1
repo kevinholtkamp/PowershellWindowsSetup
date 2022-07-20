@@ -352,7 +352,11 @@ function Setup-Powershell($Configuration = "default"){
     Write-Host "Done setting up Powershell"
 }
 
-
+function Restore-Backup($Configuration = "default"){
+    Get-ChildItem "./$Configuration/*.rar" | ForEach-Object {
+        Expand-WinRAR -ArchivePath $_.FullName -TargetDirectory "$($_.BaseName):\"
+    }
+}
 
 function Start-Setup($Configuration = "default"){
     Start-Transcript "$Home\Desktop\$(Get-Date -Format "yyyy_MM_dd")_setup.transcript"
@@ -373,7 +377,7 @@ function Start-Setup($Configuration = "default"){
         net stop wuauserv | Write-Host
         Read-Host "Windows update service stopped. Press enter to continue"
 
-
+        Restore-Backup -Configuration $Configuration
         if(Test-Path ".\prepend_custom.ps1"){
             & ".\$Configuration\scripts\prepend_custom.ps1"
         }

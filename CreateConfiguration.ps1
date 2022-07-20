@@ -5,17 +5,6 @@ if(!(Get-InstalledModule "PSHelperTools" -ErrorAction SilentlyContinue -MinimumV
 }
 
 
-function PromptN($Item){
-    $Return = [System.Collections.ArrayList]@()
-    Write-Host "Enter any number of $Item, just press enter to exit: " -ForegroundColor Blue -NoNewline
-    $Input = Read-Host
-    while($Input -ne ""){
-        $Return.Add($Input) | Out-Null
-        Write-Host "Another one: " -ForegroundColor Blue -NoNewline
-        $Input = Read-Host
-    }
-    $Return
-}
 function PromptYesNo($Prompt){
     Write-Host "$Prompt (yes/no): " -ForegroundColor Blue -NoNewline
     while($true){
@@ -51,16 +40,16 @@ do{
         $Hosts["FromFile"] = Get-Content "$($Env:WinDir)\system32\Drivers\etc\hosts" | ForEach-Object {$_.Split("#")[0].Trim()} | Where-Object {!$_.Equals("")}
     }
     #Manual entries for use in from file
-    $Hosts["FromFile"].Add((PromptN "host file entries (Format: <IP> <Domain>)"))
+    $Hosts["FromFile"].Add((Read-ArrayInput "host file entries (Format: <IP> <Domain>)"))
     #from url
-    $Hosts["FromURL"] = PromptN "URLs with host file entries"
+    $Hosts["FromURL"] = Read-ArrayInput "URLs with host file entries"
 
 #install
     $Install = @{}
     #exe
     Write-Host "If you want to install any exe files, simply add them to the .\$ConfigurationName\install\ directory" -ForegroundColor Yellow
     #from url
-    $Install["FromURL"] = PromptN "URLs for installation"
+    $Install["FromURL"] = Read-ArrayInput "URLs for installation"
     #choco
     if(PromptYesNo "Do you want to read all installed chocolatey packages?"){
         if(Get-Command "choco" -ErrorAction SilentlyContinue){
@@ -78,7 +67,7 @@ do{
         }
     }
     #Remove bloatware
-    $Install["RemoveBloatware"] = PromptN "bloatwares (wildcards permitted)"
+    $Install["RemoveBloatware"] = Read-ArrayInput "bloatwares (wildcards permitted)"
 
 #powershell
     $Powershell = @{}
@@ -100,7 +89,7 @@ do{
 #settings
     $Settings = @{}
     #associations
-    $Settings["FileAssociations"] = PromptN "file associations (format: .csv=C:\windows\system32\notepad.exe)"
+    $Settings["FileAssociations"] = Read-ArrayInput "file associations (format: .csv=C:\windows\system32\notepad.exe)"
     #partitions
     if(PromptYesNo "Do you want to read the partition letters from the current installation?"){
     Write-Host "Reading partition letters from current installation" -ForegroundColor Green
@@ -115,7 +104,7 @@ do{
     #registry
     #symlinks
     if(PromptYesNo "Do you want to read symlinks from current installation?"){
-        $FoldersToSearch = PromptN "folders to search for symlinks"
+        $FoldersToSearch = Read-ArrayInput "folders to search for symlinks"
         if(!$FoldersToSearch){
             $FoldersToSearch = @("$env:USERPROFILE\AppData", "D:\", "E:\", "C:\Users\Public\Documents\")
         }
@@ -152,6 +141,8 @@ do{
             }
         }
     }
+#backup
+    $Backup = Read-ArrayInput "directories to backup, patterns permitted"
 
 
 
@@ -227,6 +218,11 @@ if(PromptYesNo "Want to save this configuration?"){
         New-Item ".\settings\associations.ini" -ItemType File | Out-Null
         Set-Content ".\settings\associations.ini" "[associations]"
         Add-Content ".\settings\associations.ini" $Settings["FileAssociations"]
+    }
+    #backup
+    if($Backup){
+        New-Item ".\backup.txt" -ItemType File | Out-Null
+        Set-Content ".\backup.txt" $Backup
     }
 
     Pop-Location
