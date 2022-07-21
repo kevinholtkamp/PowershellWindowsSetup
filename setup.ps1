@@ -1,4 +1,7 @@
-. .\functions.ps1
+param(
+    [Parameter(Position = 0)]
+    [String] $Configuration
+)
 
 
 function Setup-FileAssociations(){
@@ -574,4 +577,8 @@ function Start-Setup(){
     }
 
     Stop-Transcript
+}
+
+if($Configuration){
+    Start-Setup $Configuration
 }
