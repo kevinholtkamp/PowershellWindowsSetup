@@ -1,6 +1,9 @@
 param(
     [Parameter(Position = 0)]
-    [String] $Configuration
+    [String] $Configuration,
+
+    [Parameter(Position = 1)]
+    [String] $ProgressColor = "Green"
 )
 
 
@@ -13,7 +16,8 @@ function Setup-FileAssociations(){
     [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
     [Hashtable] $IniContent
     )
-    Write-Host "Setting up file associations"
+    Write-Host "Setting up file associations" -ForegroundColor $ProgressColor
+
     if($PSCmdlet.ParameterSetName -eq "Configuration" -and (Test-Path ".\$Configuration\settings\associations.ini")){
         $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments
     }
@@ -23,7 +27,8 @@ function Setup-FileAssociations(){
         Register-FTA $File $Extension
         Write-Verbose "Done creating association $File for file type $Extension"
     }
-    Write-Host "Done setting up file associations"
+
+    Write-Host "Done setting up file associations" -ForegroundColor $ProgressColor
 }
 
 function Load-Registry(){
@@ -33,12 +38,12 @@ function Load-Registry(){
         [String] $Configuration = "default"
     )
     if(Test-Path ".\$Configuration\settings\registry.reg"){
-        Write-Host "Importing registry file"
+        Write-Host "Importing registry file" -ForegroundColor $ProgressColor
         reg import ".\$Configuration\settings\registry.reg"
-        Write-Host "Done importing registry file"
+        Write-Host "Done importing registry file" -ForegroundColor $ProgressColor
     }
     else{
-        Write-Host "Cannot find registry file"
+        Write-Host "Cannot find registry file" -ForegroundColor $ProgressColor
     }
 }
 
@@ -51,13 +56,14 @@ function Create-Symlinks(){
         [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
         [Hashtable] $IniContent
     )
-    Write-Host "Creating Symlinks"
+    Write-Host "Creating Symlinks" -ForegroundColor $ProgressColor
+
     if($PSCmdlet.ParameterSetName -eq "Configuration"){
         if(Test-Path ".\$Configuration\settings\symlinks.ini"){
             $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\symlinks.ini" -IgnoreComments
         }
         else{
-            Write-Host "No symlinks.ini file found"
+            Write-Host "No symlinks.ini file found" -ForegroundColor $ProgressColor
             return
         }
     }
@@ -147,9 +153,10 @@ function Create-Symlinks(){
         }
     }
     else{
-        Write-Host "Ini content is empty"
+        Write-Host "Ini content is empty" -ForegroundColor $ProgressColor
     }
-    Write-Host "Done creating Symlinks"
+
+    Write-Host "Done creating Symlinks" -ForegroundColor $ProgressColor
 }
 
 function Setup-Hosts(){
@@ -164,7 +171,8 @@ function Setup-Hosts(){
         [Parameter(Position = 2, ValueFromRemainingArguments = $true)]
         [String[]] $FromURL
     )
-    Write-Host "Setting up hosts file"
+    Write-Host "Setting up hosts file" -ForegroundColor $ProgressColor
+
     if(Test-Path ".\$Configuration\hosts\from-file.txt"){
         Write-Verbose "Adding hosts from file"
         Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Get-Content -Path ".\$Configuration\hosts\from-file.txt")
@@ -207,7 +215,7 @@ function Setup-Hosts(){
     }
 
 
-    Write-Host "Done setting up hosts file"
+    Write-Host "Done setting up hosts file" -ForegroundColor $ProgressColor
 }
 
 function Install-Programs(){
@@ -223,7 +231,8 @@ function Install-Programs(){
         [Parameter(Position = 3)]
         [String[]] $FromWinget
     )
-    Write-Host "Installing programs"
+    Write-Host "Installing programs" -ForegroundColor $ProgressColor
+
     foreach($ExeFile in Get-Childitem ".\$Configuration\install\*.exe"){
         Write-Verbose "Installing $ExeFile from file"
         Start-Process -FilePath "$ExeFile" -ArgumentList "/S"
@@ -243,8 +252,9 @@ function Install-Programs(){
         Write-Verbose "Done installing from url"
     }
     else{
-        Write-Host "No install from-url file found"
+        Write-Verbose "No install from-url file found"
     }
+
     if($FromURL){
         Write-Verbose "Installing from url from parameter"
         foreach($URL in $FromURL){
@@ -299,7 +309,7 @@ function Install-Programs(){
         Write-Verbose "Done installing from chocolatey"
     }
     else{
-        Write-Host "No install from-chocolatey file found"
+        Write-Verbose "No install from-chocolatey file found"
     }
     if($FromChocolatey -and (Get-Command "choco" -errorAction SilentlyContinue)){
         Write-Verbose "Installing from chocolatey from parameter"
@@ -337,8 +347,9 @@ function Install-Programs(){
         Write-Verbose "Done installing from winget"
     }
     else{
-        Write-Host "No install from-winget file found"
+        Write-Verbose "No install from-winget file found"
     }
+
     if($FromWinget -and (Get-Command "winget" -errorAction SilentlyContinue)){
         Write-Verbose "Installing from winget from parameter"
         foreach($Install in $FromWinget){
@@ -348,8 +359,11 @@ function Install-Programs(){
         }
         Write-Verbose "Done installing from winget from parameter"
     }
+    else{
+        Write-Verbose "No winget modules passed"
+    }
 
-    Write-Host "Done installing programs"
+    Write-Host "Done installing programs" -ForegroundColor $ProgressColor
 }
 
 function Remove-Bloatware(){
@@ -361,28 +375,32 @@ function Remove-Bloatware(){
         [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
         [String[]] $Bloatwares
     )
+    Write-Host "Removing bloatware" -ForegroundColor $ProgressColor
+
     if(Test-Path ".\$Configuration\install\remove-bloatware.txt"){
-        Write-Host "Removing bloatware"
+        Write-Verbose "Removing bloatware"
         foreach($AppxPackage in (Get-Content ".\$Configuration\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";*"})){
             Write-Verbose "Removing $AppxPackage"
             Get-AppxPackage $AppxPackage | Remove-AppxPackage
             Write-Verbose "Done removing $AppxPackage"
         }
-        Write-Host "Done removing bloatware"
+        Write-Verbose "Done removing bloatware"
     }
     else{
-        Write-Host "No remove-bloatware file found"
+        Write-Verbose "No remove-bloatware file found"
     }
 
     if($Bloatwares){
-        Write-Host "Removing bloatware from parameter"
+        Write-Verbose "Removing bloatware from parameter"
         foreach($AppxPackage in $Bloatwares){
             Write-Verbose "Removing $AppxPackage"
             Get-AppxPackage $AppxPackage | Remove-AppxPackage
             Write-Verbose "Done removing $AppxPackage"
         }
-        Write-Host "Done removing bloatware from parameter"
+        Write-Verbose "Done removing bloatware from parameter"
     }
+
+    Write-Host "Done removing bloatware" -ForegroundColor $ProgressColor
 }
 
 function Setup-Partitions(){
@@ -394,13 +412,14 @@ function Setup-Partitions(){
         [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
         [Hashtable] $IniContent
     )
-    Write-Host "Setting up partitions"
+    Write-Host "Setting up partitions" -ForegroundColor $ProgressColor
+
     if($PSCmdlet.ParameterSetName -eq "Configuration"){
         if(Test-Path ".\$Configuration\settings\partitions.ini"){
             $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments
         }
         else{
-            Write-Host "No partitions.ini file found"
+            Write-Host "No partitions.ini file found" -ForegroundColor $ProgressColor
             return
         }
     }
@@ -445,14 +464,14 @@ function Setup-Partitions(){
                     Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($IniContent["$Drive"]["$Partition"])"
                 }
             }
-            Write-Host "Done setting up partitions"
+            Write-Host "Done setting up partitions" -ForegroundColor $ProgressColor
         }
         else{
-            Write-Host "Ini content is empty"
+            Write-Host "Ini content is empty" -ForegroundColor $ProgressColor
         }
     }
     else{
-        Write-Host "No partition file found"
+        Write-Host "No partition file found" -ForegroundColor $ProgressColor
     }
 }
 
@@ -465,8 +484,9 @@ function Setup-Powershell(){
         [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
         [String[]] $Modules
     )
-    Write-Host "Setting up Powershell"
+    Write-Host "Setting up Powershell" -ForegroundColor $ProgressColor
     Update-Help -ErrorAction "silentlyContinue"
+
     if(Test-Path ".\$Configuration\powershell\packageprovider.txt"){
         Write-Verbose "Installing packageproviders"
         foreach($PackageProvider in (Get-Content ".\$Configuration\powershell\packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
@@ -482,11 +502,11 @@ function Setup-Powershell(){
         Write-Verbose "Done installing packageproviders"
     }
     else{
-        Write-Host "No powershell-packageprovider file found"
+        Write-Verbose "No powershell-packageprovider file found"
     }
 
     if(Test-Path ".\$Configuration\powershell\module.txt"){
-        Write-Verbose "Installing modules"
+        Write-Verbose "Installing modules from file"
         foreach($PowershellModule in (Get-Content ".\$Configuration\powershell\module.txt" | Where-Object {$_ -notlike ";*"})){
             if(Get-InstalledModule $PowershellModule -ErrorAction "silentlyContinue"){
                 Write-Verbose "Module $PowershellModule is already installed, skipping..."
@@ -497,13 +517,14 @@ function Setup-Powershell(){
                 Write-Verbose "Done installing module $PowershellModule"
             }
         }
-        Write-Verbose "Done installing modules"
+        Write-Verbose "Done installing modules from file"
     }
     else{
-        Write-Host "No powershell-module file found"
+        Write-Verbose "No powershell-module file found"
     }
 
     if($Modules){
+        Write-Verbose "Installing modules from parameter"
         foreach($PowershellModule in $Modules){
             if(Get-InstalledModule $PowershellModule -ErrorAction "silentlyContinue"){
                 Write-Verbose "Module $PowershellModule is already installed, skipping..."
@@ -514,11 +535,13 @@ function Setup-Powershell(){
                 Write-Verbose "Done installing module $PowershellModule"
             }
         }
+        Write-Verbose "Done installing modules from parameter"
     }
     else{
-        Write-Host "No powershell modules passed"
+        Write-Verbose "No powershell modules passed"
     }
-    Write-Host "Done setting up Powershell"
+
+    Write-Host "Done setting up Powershell" -ForegroundColor $ProgressColor
 }
 
 
@@ -539,13 +562,13 @@ function Start-Setup(){
                 Import-Module $_ -Force -ErrorAction Stop
             }
         }
-        Write-Host "Creating Windows Checkpoint"
+        Write-Host "Creating Windows Checkpoint" -ForegroundColor $ProgressColor
         Checkpoint-Computer -Description "Before Start-Setup at $(Get-Date)"
-        Read-Host "Checkpoint created. Press enter to continue"
+        Read-Host "Checkpoint created. Press enter to continue" -ForegroundColor $ProgressColor
 
-        Write-Host "Stopping Windows update service"
+        Write-Host "Stopping Windows update service" -ForegroundColor $ProgressColor
         net stop wuauserv | Write-Host
-        Read-Host "Windows update service stopped. Press enter to continue"
+        Read-Host "Windows update service stopped. Press enter to continue" -ForegroundColor $ProgressColor
 
 
         if(Test-Path ".\prepend_custom.ps1"){
@@ -564,21 +587,21 @@ function Start-Setup(){
         }
 
 
-        Write-Host "Creating Windows Checkpoint"
+        Write-Host "Creating Windows Checkpoint" -ForegroundColor $ProgressColor
         Checkpoint-Computer -Description "After Start-Setup at $(Get-Date)"
-        Read-Host "Checkpoint created. Press enter to continue"
+        Read-Host "Checkpoint created. Press enter to continue" -ForegroundColor $ProgressColor
 
-        Write-Host "Starting Windows update service"
+        Write-Host "Starting Windows update service" -ForegroundColor $ProgressColor
         net start wuauserv | Write-Host
-        Write-Host "Windows update service started. Press enter to continue"
+        Write-Host "Windows update service started. Press enter to continue" -ForegroundColor $ProgressColor
     }
     else{
-        Write-Host "No Configuration $Configuration found, terminating execution."
+        Write-Host "No Configuration $Configuration found, terminating execution." -ForegroundColor $ProgressColor
     }
 
     Stop-Transcript
 }
 
 if($Configuration){
-    Start-Setup $Configuration
+    Start-Setup $Configuration -ErrorAction "Stop"
 }
