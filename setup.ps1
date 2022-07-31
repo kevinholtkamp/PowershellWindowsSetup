@@ -556,10 +556,11 @@ function Start-Setup(){
 
     if(Test-Path ".\$Configuration\"){
         #Requirements
-        "PsIni", "Recycle", "PSHelperTools" | % {
-            if(!(Get-InstalledModule $_ -ErrorAction SilentlyContinue)){
-                Install-Module $_ -Force -ErrorAction Stop
-                Import-Module $_ -Force -ErrorAction Stop
+        "PsIni", "Recycle", "PSHelperTools" | ForEach-Object {
+            if(!(Get-InstalledModule $_ -ErrorAction "SilentlyContinue")){
+                Write-Verbose "Installing required module $_"
+                Install-Module $_ -Force -ErrorAction "Stop"
+                Import-Module $_ -Force -ErrorAction "Stop"
             }
         }
         Write-Host "Creating Windows Checkpoint" -ForegroundColor $ProgressColor
