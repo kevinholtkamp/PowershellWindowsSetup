@@ -373,7 +373,7 @@ function Remove-Bloatware(){
         [String] $Configuration = "default",
 
         [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
-        [String[]] $Bloatwares
+        [String[]] $Bloatware
     )
     Write-Host "Removing bloatware" -ForegroundColor $ProgressColor
 
@@ -390,9 +390,9 @@ function Remove-Bloatware(){
         Write-Verbose "No remove-bloatware file found"
     }
 
-    if($Bloatwares){
+    if($Bloatware){
         Write-Verbose "Removing bloatware from parameter"
-        foreach($AppxPackage in $Bloatwares){
+        foreach($AppxPackage in $Bloatware){
             Write-Verbose "Removing $AppxPackage"
             Get-AppxPackage $AppxPackage | Remove-AppxPackage
             Write-Verbose "Done removing $AppxPackage"
