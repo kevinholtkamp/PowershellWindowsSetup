@@ -9,7 +9,7 @@ Describe "Setup-Hosts"{
     AfterAll{
         Remove-Item "$TestConfiguration\hosts" -Force -Recurse -ErrorAction SilentlyContinue
     }
-    Context "Setup-Hosts"{
+    Context "Configuration parameter"{
         BeforeAll{
             $Env:WinDir = "TestDrive:\Windows"
             New-Item "$($Env:WinDir)\system32\Drivers\etc\hosts" -ItemType File -Force -ErrorAction SilentlyContinue
@@ -30,6 +30,25 @@ Describe "Setup-Hosts"{
             Set-Content "$TestConfiguration\hosts\from-url.txt" "https://blocklistproject.github.io/Lists/smart-tv.txt"
 
             Setup-Hosts -Configuration $TestConfiguration
+
+            Select-String -Path "TestDrive:\Windows\system32\Drivers\etc\hosts" -Pattern "Smart TV list" | Should -not -BeNullOrEmpty
+        }
+    }
+    Context "Powershell parameters"{
+        BeforeAll{
+            $Env:WinDir = "TestDrive:\Windows"
+            New-Item "$($Env:WinDir)\system32\Drivers\etc\hosts" -ItemType File -Force -ErrorAction SilentlyContinue
+        }
+        AfterAll{
+            $Env:WinDir = "C:\Windows"
+        }
+        It "Importing hosts from file"{
+            Setup-Hosts -Configuration "" -Hosts "192.168.178.1       fritz.box"
+
+            Select-String -Path "TestDrive:\Windows\system32\Drivers\etc\hosts" -Pattern "fritz.box" | Should -not -BeNullOrEmpty
+        }
+        It "Importing hosts from url"{
+            Setup-Hosts -Configuration "" -FromURL "https://blocklistproject.github.io/Lists/smart-tv.txt"
 
             Select-String -Path "TestDrive:\Windows\system32\Drivers\etc\hosts" -Pattern "Smart TV list" | Should -not -BeNullOrEmpty
         }
