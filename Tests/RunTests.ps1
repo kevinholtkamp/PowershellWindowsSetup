@@ -1,7 +1,7 @@
 #Requires -RunAsAdministrator
 
 Write-Host "Installing PackageProvider NuGet if not installed already" -ForegroundColor Yellow
-Install-PackageProvider -Name NuGet -Confirm:$false -Force | Out-Null
+Install-PackageProvider -Name NuGet -Confirm:$false -Force -ErrorAction "SilentlyContinue" | Out-Null
 $Repository = "CustomRepository"
 if(!(Get-PsRepository "CustomRepository" -ErrorAction SilentlyContinue)){
     Write-Host "Installing Custom Repository" -ForegroundColor Yellow
