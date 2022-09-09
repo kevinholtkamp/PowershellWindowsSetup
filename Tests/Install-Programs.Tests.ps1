@@ -20,7 +20,7 @@ Describe "Install-Programs"{
 
         Cleanup
     }
-    Context "Install from URL"{
+    Context "Install from URL from file"{
         BeforeAll{
             Mock Start-Process {}
         }
@@ -83,7 +83,7 @@ Describe "Install-Programs"{
             Remove-Item "$TestConfiguration\install\test.exe"
         }
     }
-    Context "Install choco"{
+    Context "Install from choco from file"{
         It "Installing choco"{
             Mock Start-Job {0}
             Mock Stop-Job {}
@@ -120,7 +120,7 @@ priority=1"
             Should -Invoke choco -Times 3 -Exactly
         }
     }
-    Context "Winget"{
+    Context "Install from Winget from file"{
         It "Install winget"{
             Mock Start-Process {}
             Mock Wait-Process {}
@@ -139,6 +139,48 @@ priority=1"
             Set-Content "$TestConfiguration\install\from-winget.txt" "wingetTestPackage"
 
             Install-Programs -Configuration $TestConfiguration
+
+            Should -Invoke winget -Times 1 -Exactly
+        }
+    }
+    Context "Install from URL from parameter"{
+        BeforeAll{
+            Mock Start-Process {}
+        }
+        It "Normal installation"{
+            Install-Programs -Configuration "" -FromURL "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.3.3/npp.8.3.3.Installer.x64.exe"
+
+            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -eq "$($Env:TEMP)\1.exe" -and $ArgumentList -eq "/S" -and $Wait -eq $true}
+            "$($Env:TEMP)\1.exe" | Should -Not -Exist
+        }
+        It "Broken URL"{
+            {Install-Programs -Configuration "" -FromURL "https://google.de/file.exe"} | Should -Throw
+
+            "$($Env:TEMP)\1.exe" | Should -Not -Exist
+        }
+        It "Non executable file"{
+            Install-Programs -Configuration "" -FromURL "https://github.com/kevinholtkamp/PowershellWindowsSetup/blob/94ba53b8ff6964f338afc169225dcb1a6ced3619/README.md"
+
+            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -eq "$($Env:TEMP)\1.exe"}
+            "$($Env:TEMP)\1.exe" | Should -Not -Exist
+        }
+    }
+    Context "Install from choco from parameter"{
+        It "Installing from choco"{
+            function script:choco(){}
+            Mock choco {}
+
+            Install-Programs -Configuration "" -FromChocolatey "testChocoPackage"
+
+            Should -Invoke choco -Times 2 -Exactly
+        }
+    }
+    Context "Install from winget from parameter"{
+        It "Install from winget"{
+            function script:winget(){}
+            Mock winget {}
+
+            Install-Programs -Configuration "" -FromWinget "wingetTestPackage"
 
             Should -Invoke winget -Times 1 -Exactly
         }
