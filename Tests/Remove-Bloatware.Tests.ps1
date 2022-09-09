@@ -36,5 +36,10 @@ Describe "Remove-Bloatware"{
         It "Try removing not installed app"{
             {Remove-Bloatware -Bloatware @("", "awdawdad")} | Should -Throw
         }
+        It "-Bloatware Parameter"{
+            Remove-Bloatware -Configuration "" -Bloatware "Candy Crush"
+
+            Should -Invoke Remove-AppxPackage -Times 1 -ParameterFilter {"Candy Crush"}
+        }
     }
 }
