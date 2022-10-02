@@ -6,4 +6,4 @@ Mock -CommandName Write-Verbose -MockWith {}
 Mock -CommandName Read-Host -MockWith {Write-Host $Prompt}
 Mock -CommandName Write-Information -MockWith {}
 
-. .\setup.ps1
+. .\Run-Setup.ps1

@@ -2,4 +2,4 @@ Xcopy /E /I C:\Users\WDAGUtilityAccount\PowershellWindowsSetup C:\Users\WDAGUtil
 explorer.exe C:\Users\WDAGUtilityAccount\Desktop\PowershellWindowsSetup
 powershell.exe -command "Set-Executionpolicy Remotesigned -Force"
 cd C:\Users\WDAGUtilityAccount\Desktop\PowershellWindowsSetup
-start powershell.exe -NoExit -NoLogo -WindowStyle "Maximized" -File "C:\Users\WDAGUtilityAccount\Desktop\PowershellWindowsSetup\Tests\RunTests.ps1"
+start powershell.exe -NoExit -NoLogo -WindowStyle "Maximized" -File "C:\Users\WDAGUtilityAccount\Desktop\PowershellWindowsSetup\Tests\Run-Tests.ps1"
