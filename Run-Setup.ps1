@@ -577,8 +577,8 @@ function Start-Setup(){
         }
         Setup-Powershell -Configuration $Configuration
         Setup-Partitions -Configuration $Configuration
-        Load-Registry -Configuration $Configuration
         Create-Symlinks -Configuration $Configuration
+        Load-Registry -Configuration $Configuration
         Setup-Hosts -Configuration $Configuration
         Remove-Bloatware -Configuration $Configuration
         Install-Programs -Configuration $Configuration
