@@ -45,5 +45,10 @@ Describe "Remove-Bloatware"{
 
             {Remove-Bloatware -Configuration $TestConfiguration} | Should -Throw
         }
+        It "-Bloatware Parameter"{
+            Remove-Bloatware -Configuration "" -Bloatware "Candy Crush"
+
+            Should -Invoke Remove-AppxPackage -Times 1 -ParameterFilter {"Candy Crush"}
+        }
     }
 }
