@@ -175,8 +175,8 @@ function Set-OptionalFeatures(){
     }
 
     foreach($Feature in $IniContent["OptionalFeatures"].Keys){
-        Write-Verbose "Feature $Feature with targetstate $($Features[$Feature])"
-        if($Features[$Feature] -eq "Enable"){
+        Write-Verbose "Feature $Feature with targetstate $($IniContent["OptionalFeatures"][$Feature]) and current state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
+        if($IniContent["OptionalFeatures"][$Feature] -eq "Enable"){
             Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Disabled"} | Enable-WindowsOptionalFeature -Online -NoRestart
         }
         else{
