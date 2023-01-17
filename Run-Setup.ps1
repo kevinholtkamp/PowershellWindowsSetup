@@ -159,6 +159,34 @@ function Create-Symlinks(){
     Write-Host "Done creating Symlinks" -ForegroundColor $ProgressColor
 }
 
+function Set-OptionalFeatures(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0, ParameterSetName = "Configuration")]
+        [String] $Configuration = "default",
+
+        [Parameter(Position = 1, ParameterSetName = "IniContent")]
+        [Hashtable] $IniContent
+    )
+    Write-Host "Setting optional features"
+
+    if($PSCmdlet.ParameterSetName -eq "Configuration"){
+        $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\optionalFeatures.ini" -IgnoreComments
+    }
+
+    foreach($Feature in $IniContent["OptionalFeatures"].Keys){
+        Write-Verbose "Feature $Feature with targetstate $($IniContent["OptionalFeatures"][$Feature]) and current state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
+        if($IniContent["OptionalFeatures"][$Feature] -eq "Enable"){
+            Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Disabled"} | Enable-WindowsOptionalFeature -Online -NoRestart
+        }
+        else{
+            Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Enabled"} | Disable-WindowsOptionalFeature -Online -NoRestart
+        }
+        Write-Verbose "Done with feature $Feature with new state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
+    }
+    Write-Host "Done setting optional features"
+}
+
 function Setup-Hosts(){
     [CmdletBinding()]
     param(
