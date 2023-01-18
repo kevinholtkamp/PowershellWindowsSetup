@@ -1,7 +1,5 @@
 BeforeAll {
     . .\Tests\CommonTestParameters.ps1
-
-    . .\setup.ps1
 }
 
 Describe "Setup-Network"{
@@ -44,12 +42,31 @@ Describe "Setup-Network"{
     }
     Context "All Parameters"{
         It "General function" -ForEach @(
-            @{ DNS =
-                @{ Ethernet = @{ Primary = "192.168.86.100"; Secondary = "1.0.0.1" };
-                   WLAN = @{ Primary = "192.168.86.100"; Secondary = "1.0.0.1"}}
-               Interfaces =
-                @{ Ethernet = @{ IPAddress = "192.168.86.101"; AddressFamily = "IPv4"; PrefixLength = 24; DefaultGateway = "192.168.86.1"};
-                   WLAN = @{ IPAddress = "192.168.86.102"; AddressFamily = "IPv4"; PrefixLength = 24; DefaultGateway = "192.168.86.1"}}
+            @{
+                DNS = @{
+                    Ethernet = @{
+                        Primary = "192.168.86.100";
+                        Secondary = "1.0.0.1"
+                    };
+                    WLAN = @{
+                        Primary = "192.168.86.100";
+                        Secondary = "1.0.0.1"
+                    }
+                }
+                Interfaces = @{
+                    Ethernet = @{
+                        IPAddress = "192.168.86.101";
+                        AddressFamily = "IPv4";
+                        PrefixLength = 24;
+                        DefaultGateway = "192.168.86.1"
+                    };
+                    WLAN = @{
+                        IPAddress = "192.168.86.102";
+                        AddressFamily = "IPv4";
+                        PrefixLength = 24;
+                        DefaultGateway = "192.168.86.1"
+                    }
+                }
             }
         ){
             Out-IniFile -FilePath "$TestConfiguration\network\interfaces.ini" -InputObject $Interfaces
@@ -61,7 +78,8 @@ Describe "Setup-Network"{
             #Remove-NetRoute
             foreach($Interface in $Interfaces.Keys){
                 $ParameterFilterScriptblock = [ScriptBlock]::Create(
-                    "`$InterfaceAlias -eq '$Interface' -and `$AddressFamily -eq '$($Interfaces[$Interface].AddressFamily)'")
+                    "`$InterfaceAlias -eq '$Interface' -and `$AddressFamily -eq '$($Interfaces[$Interface].AddressFamily)'"
+                )
                 Should -Invoke Remove-NetIPAddress -Times 1 -Exactly -ParameterFilter $ParameterFilterScriptblock
 
                 $ParameterFilterScriptblock = [ScriptBlock]::Create("`$InterfaceAlias -eq '$Interface'")
@@ -74,13 +92,14 @@ Describe "Setup-Network"{
                     -and `$IPAddress -eq '$($Interfaces[$Interface].IPAddress)' ``
                     -and `$AddressFamily -eq '$($Interfaces[$Interface].AddressFamily)' ``
                     -and `$PrefixLength -eq '$($Interfaces[$Interface].PrefixLength)' ``
-                    -and `$DefaultGateway -eq '$($Interfaces[$Interface].DefaultGateway)'")
+                    -and `$DefaultGateway -eq '$($Interfaces[$Interface].DefaultGateway)'"
+                )
                 Should -Invoke New-NetIPAddress -Times 1 -Exactly -ParameterFilter $ParameterFilterScriptblock
             }
             #Set-DnsClientServerAddress
             foreach($Interface in $DNS.Keys){
                 $ParameterFilterScriptblock = [ScriptBlock]::Create("
-                    `$InterfaceAlias -eq '$Interface' -and -not (Compare-Object `$ServerAddresses $(Split-ToArrayLiteral $DNS[$Interface].Values))")
+                    `$InterfaceAlias -eq '$Interface' -and -not (Compare-Object `$ServerAddresses @($($DNS[$Interface].Values | ForEach-Object {"'$_'"} | Join-StringCustom -Separator ',')))")
                 Should -Invoke Set-DnsClientServerAddress -Times 1 -Exactly -ParameterFilter $ParameterFilterScriptblock
             }
         }
