@@ -72,7 +72,7 @@ Describe "Setup-Network"{
             Out-IniFile -FilePath "$TestConfiguration\network\interfaces.ini" -InputObject $Interfaces
             Out-IniFile -FilePath "$TestConfiguration\network\dns.ini" -InputObject $DNS
 
-            Setup-Network -Configuration $TestConfiguration
+            Setup-Network -Configuration $TestConfiguration -Verbose
 
             #Remove-NetIPAddress
             #Remove-NetRoute

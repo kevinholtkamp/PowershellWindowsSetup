@@ -6,29 +6,42 @@ param(
     [String] $ProgressColor = "Green"
 )
 
-function Setup-Network($Configuration = "default"){
-    if(Test-Path ".\$Configuration\network\interfaces.ini"){
+function Setup-Network(){
+    [CmdletBinding()]
+    param(
+    [Parameter(Position = 0, ParameterSetName = 'Configuration')]
+    [String] $Configuration = "default",
+
+    [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
+    [Hashtable] $Interfaces,
+
+    [Parameter(Position = 1, ParameterSetName = 'IniContent')]
+    [Hashtable] $DNSServers
+    )
+
+    if($PSCmdlet.ParameterSetName -eq "Configuration" -and Test-Path ".\$Configuration\network\interfaces.ini"){
         $Interfaces = Get-IniContent -FilePath ".\$Configuration\network\interfaces.ini" -IgnoreComments
-        foreach($InterfaceAlias in $Interfaces.Keys){
-            $Interface = $Interfaces[$InterfaceAlias]
-            Remove-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily $Interface["AddressFamily"]
-            if($Interface["DefaultGateway"]){
-                Remove-NetRoute -InterfaceAlias $InterfaceAlias
-            }
-            New-NetIPAddress -InterfaceAlias $InterfaceAlias @Interface
-        }
     }
     else{
         Write-Host "Cannot find interfaces file"
     }
-    if(Test-Path ".\$Configuration\network\dns.ini"){
-        $DNSServers = Get-IniContent -FilePath ".\$Configuration\network\dns.ini" -IgnoreComments
-        foreach($InterfaceAlias in $DNSServers.Keys){
-            Set-DnsClientServerAddress -InterfaceAlias $InterfaceAlias -ServerAddresses @($DNSServers[$InterfaceAlias]["Primary"], $DNSServers[$InterfaceAlias]["Secondary"])
+    foreach($InterfaceAlias in $Interfaces.Keys){
+        $Interface = $Interfaces[$InterfaceAlias]
+        Remove-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily $Interface["AddressFamily"]
+        if($Interface["DefaultGateway"]){
+            Remove-NetRoute -InterfaceAlias $InterfaceAlias
         }
+        New-NetIPAddress -InterfaceAlias $InterfaceAlias @Interface
+    }
+
+    if($PSCmdlet.ParameterSetName -eq "Configuration" -and Test-Path ".\$Configuration\network\dns.ini"){
+        $DNSServers = Get-IniContent -FilePath ".\$Configuration\network\dns.ini" -IgnoreComments
     }
     else{
         Write-Host "Cannot find dns file"
+    }
+    foreach($InterfaceAlias in $DNSServers.Keys){
+        Set-DnsClientServerAddress -InterfaceAlias $InterfaceAlias -ServerAddresses @($DNSServers[$InterfaceAlias]["Primary"], $DNSServers[$InterfaceAlias]["Secondary"])
     }
 }
 

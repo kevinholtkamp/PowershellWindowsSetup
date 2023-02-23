@@ -108,7 +108,7 @@ Describe "Setup-Partitions"{
             $GetPartitionScriptblock = [Scriptblock]::Create("
                 `$Ret = [System.Collections.ArrayList]@();
                 `$Index = 1;
-                foreach(`$Letter in $(Split-ToArrayLiteral $Letters)){
+                foreach(`$Letter in $("@($($Letters | ForEach-Object {"'$_'"} | Join-StringCustom -Separator ','))")){
                     `$Ret.Add(([Microsoft.Management.Infrastructure.CimInstance]::new('MSFT_Partition', 'root/Microsoft/Windows/Storage') | Add-Member -Name PartitionNumber -Value `$Index -MemberType NoteProperty -PassThru));
                     `$Index = `$Index + 1;
                 }
