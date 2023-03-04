@@ -47,6 +47,60 @@ function Load-Registry(){
     }
 }
 
+function Create-SymlinkFiles(){
+    [CmdletsBinding()]
+    param(
+        [Parameter(Position = 0, ParameterSetName = 'Configuration')]
+        [String] $Configuration = "default",
+
+        [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
+        [Hashtable] $IniContent
+    )
+    Write-Host "Creating Symlink files" -ForegroundColor $ProgressColor
+
+    if($PSCmdlet.ParameterSetName -eq "Configuration"){
+        if(Test-Path ".\$Configuration\settings\symlinkFiles.ini"){
+            $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\symlinkFiles.ini" -IgnoreComments
+        }
+        else{
+            Write-Host "No symlinkFiles.ini file found" -ForegroundColor $ProgressColor
+            return
+        }
+    }
+    if($IniContent){
+        foreach($LinkPath in $IniContent.Keys){
+            Write-Verbose "Creating Symlink for LinkPath $LinkPath"
+            if(!(Test-Path $LinkPath)){
+              New-Item $LinkPath -ItemType Directory -Force
+            }
+            $Links = $IniContent[$LinkPath]
+            foreach($Name in $Links.Keys){
+                $Path = $Links[$Name]
+                Write-Verbose "Create-SymlinkFiles: $Name | $Path"
+                if(Test-Path "$LinkPath\$Name"){
+                    Write-Error "Symlink file ($Name | $Path) already exists: Keeping newer file, backing older file up as $LinkPath\old_$Name"
+                    if((Get-Item $Path).LastWriteTime -gt (Get-Item "$LinkPath\$Name").LastWriteTime){
+                        Rename-Item "$LinkPath\$Name" "old_$Name"
+                        Copy-Item $Path "$LinkPath\$Name"
+                        Remove-ItemSafely $Path
+                        New-Item $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
+                    }
+                    else{
+                        Copy-Item $Path "$LinkPath\old_$Name"
+                        Remove-ItemSafely $Path
+                        New-Item $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
+                    }
+                }
+                else{
+                    Copy-Item $Path "$LinkPath\$Name"
+                    Remove-ItemSafely $Path
+                    New-Item $Path -ItemType SymbolicLink -Value "$LinkPath\$Name" -Force
+                }
+            }
+        }
+    }
+}
+
 function Create-Symlinks(){
     [CmdletBinding()]
     param(
@@ -109,10 +163,10 @@ function Create-Symlinks(){
                                 else{
                                     Write-Verbose "Exists in LinkPath"
                                 }
-                                if(Compare-Paths -First $Path -Second "$LinkPath\$Name"){
+                                if(!(Compare-Paths -First $Path -Second "$LinkPath\$Name")){
                                     Write-Verbose "Symlink exists, but has a wrong target"
-                                    Write-Verbose "Target: $LinkPath\$Name"
-                                    Write-Verbose "Wanted Target: $(Get-SymlinkTarget $Path)"
+                                    Write-Verbose "Wanted Target: $LinkPath\$Name"
+                                    Write-Verbose "Current Target: $(Get-SymlinkTarget $Path)"
                                     Copy-Item -Path "$Path\*" -Destination "$LinkPath\$Name\" -Recurse -Force
                                     Write-Verbose "Everything copied from false target"
                                     Remove-ItemSafely -Path $Path
