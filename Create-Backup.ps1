@@ -1,4 +1,4 @@
-"PSWinRAR", "PSHelperTools" | % {
+"PSWinRAR", "PSHelperTools" | ForEach-Object {
     if(!(Get-InstalledModule $_ -ErrorAction SilentlyContinue)){
         Install-Module $_ -Force -ErrorAction Stop
         Import-Module $_ -Force -ErrorAction Stop
@@ -32,8 +32,10 @@ else{
     $Files = Get-Content "./$Configuration/backup.txt" | Where-Object {$_ -notlike ";*"}
 }
 
-$Files | Compress-WinRAR -Archive "$(Get-Location)\$Configuration\$($_.Substring(0,1)).rar" `
-                         -ArchiveFileStructure "Full" `
-                         -Preset "High" `
-                         -ErrorAction "Continue" `
-                         -Verbose
+$Files | Compress-WinRAR `
+    -Archive "$(Get-Location)\Backup.rar" `
+    -ArchiveFileStructure "Full" `
+    -Preset "High" `
+    -ErrorAction "Continue" `
+    -RecoveryPercentage 5 `
+    -Verbose
