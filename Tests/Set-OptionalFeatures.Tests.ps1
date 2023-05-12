@@ -28,7 +28,7 @@ Describe "Set-OptionalFeatures"{
             }
         }
         It "Enable features"{
-            Set-OptionalFeatures -IniContent $EnableFeatures -Verbose
+            Set-OptionalFeatures -IniContent $EnableFeatures
 
             $EnableFeatures | ForEach-Object {Get-WindowsOptionalFeature -FeatureName $_ -Online | Where-Object {$_.state -eq "Enabled"} | Should -Be $true}
         }

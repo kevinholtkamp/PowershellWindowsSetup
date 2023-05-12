@@ -86,7 +86,7 @@ Describe "Setup-Partitions"{
                     "1" = "A"
                     "2" = "B"
                 }
-            } -Verbose
+            }
 
             Should -Invoke -CommandName Set-Partition -Exactly -Times 4
             Should -Invoke -CommandName Set-Partition -Times 1 -Parameterfilter {
