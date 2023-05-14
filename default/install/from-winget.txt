@@ -1,5 +1,4 @@
 JetBrains.IntelliJIDEA.Community
-Valve.Steam
 vcredist140
 Microsoft.VC++2015-2022Redist-x64
 Microsoft.VC++2017Redist-x64
@@ -10,11 +9,6 @@ Microsoft.VC++2010Redist-x64
 Microsoft.VC++2008Redist-x64
 Microsoft.VC++2005Redist-x64
 Git.Git
-GitHub.GitHubDesktop
-WinDirStat.WinDirStat
-PuTTY.PuTTY
-Spotify.Spotify
-RARLab.WinRAR
 VideoLAN.VLC
 Notepad++.Notepad++
 7zip.7zip
