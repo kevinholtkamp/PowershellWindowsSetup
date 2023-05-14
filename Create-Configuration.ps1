@@ -67,15 +67,15 @@ do{
     #from url
     $Install["FromURL"] = PromptN "URLs for installation"
     #choco
-    if(PromptYesNo "Do you want to read all installed chocolatey packages?"){
-        if(Get-Command "choco" -ErrorAction SilentlyContinue){
+    if(Get-Command "choco" -ErrorAction SilentlyContinue){
+        if(PromptYesNo "Do you want to read all installed chocolatey packages?"){
             Write-Host "Reading installed choco packages from current installation" -ForegroundColor Green
             $Install["FromChocolatey"] = (choco list -localonly --limitoutput | ForEach-Object {$_.Split("|")[0]})
         }
     }
     #winget
-    if(PromptYesNo "Do you want to read all installed winget packages?"){
-        if(Get-Command "winget" -ErrorAction SilentlyContinue){
+    if(Get-Command "winget" -ErrorAction SilentlyContinue){
+        if(PromptYesNo "Do you want to read all installed winget packages?"){
             Write-Host "Reading installed winget packages from current installation" -ForegroundColor Green
             & winget export ".\from-winget.json" | Out-Null
             $Install["FromWinget"] = Get-Content ".\from-winget.json"
