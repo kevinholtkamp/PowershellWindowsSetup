@@ -56,7 +56,7 @@ do{
         $Hosts["FromFile"] = Get-Content "$($Env:WinDir)\system32\Drivers\etc\hosts" | ForEach-Object {$_.Split("#")[0].Trim()} | Where-Object {!$_.Equals("")}
     }
     #Manual entries for use in from file
-    $Hosts["FromFile"].Add((PromptN "host file entries (Format: <IP> <Domain>)"))
+    $Hosts["FromFile"] += (PromptN "host file entries (Format: <IP> <Domain>)")
     #from url
     $Hosts["FromURL"] = PromptN "URLs with host file entries"
 
@@ -152,7 +152,7 @@ do{
             foreach($Link in $Links.Keys){
                 $Value = $Links[$Link]
                 if($Value.StartsWith($Letter)){
-                    $Temp.Add("$($Value.ToString().Substring($Letter.Length + 2))=$Link") | Out-Null
+                    $Temp.Add("$($Value.ToString() -Split '\',2)=$Link") | Out-Null
                 }
             }
             $Temp | Sort-Object | ForEach-Object {
