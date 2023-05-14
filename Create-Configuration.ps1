@@ -4,7 +4,13 @@ if(!(Get-InstalledModule "PSHelperTools" -ErrorAction SilentlyContinue -MinimumV
     Import-Module PSHelperTools -RequiredVersion "0.0.5"
 }
 
-
+function Prompt($Prompt){
+    do{
+        Write-Host $Prompt -ForegroundColor Blue -NoNewline
+        $Input = Read-Host
+    } while(-Not $Input)
+    return $Input
+}
 function PromptN($Item){
     $Return = [System.Collections.ArrayList]@()
     Write-Host "Enter any number of $Item, just press enter to exit: " -ForegroundColor Blue -NoNewline
@@ -35,8 +41,7 @@ function PromptYesNo($Prompt){
 
 #Configuration name
 do{
-    Write-Host "Enter configuration name: " -ForegroundColor Blue -NoNewline
-    $ConfigurationName = Read-Host
+    $ConfigurationName = Prompt "Enter configuration name: "
     if(Test-Path ".\$ConfigurationName"){
         Write-Host "Configuration exists already, please enter a different name" -ForegroundColor Red
     }
