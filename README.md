@@ -31,7 +31,8 @@ Additionally, I try to create the script in a way where you can run it again at 
 ### .\scheduledTasks\
 - `.\scheduledTasks\` can contain none or any number of .xml files which represent a scheduled task in the [Windows task format](http://schemas.microsoft.com/windows/2004/02/mit/task)
 ### .\scripts\
-- `.\scripts\` can contain custom script files prepend_custom.ps1 and append_custom.ps1 which get executed before and after the other functions respectively
+- `append.ps1` script file that gets executed after the main script
+- `prepend.ps1` script file that gets executed before the main script
 ### .\settings\
 - `gpedit.txt` text file containing a Windows registry backup in the Windows group policy backup file format
 - `partitions.ini` ini file where each key represents the serial number of a disk and every entry contains the target drive letter for a partition index

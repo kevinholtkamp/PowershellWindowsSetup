@@ -600,8 +600,8 @@ function Start-Setup(){
         Read-Host "Windows update service stopped. Press enter to continue" -ForegroundColor $ProgressColor
 
 
-        if(Test-Path ".\prepend_custom.ps1"){
-            & ".\$Configuration\scripts\prepend_custom.ps1"
+        if(Test-Path ".\prepend.ps1"){
+            & ".\$Configuration\scripts\prepend.ps1"
         }
         Setup-Powershell -Configuration $Configuration
         Setup-Partitions -Configuration $Configuration
@@ -611,8 +611,8 @@ function Start-Setup(){
         Remove-Bloatware -Configuration $Configuration
         Install-Programs -Configuration $Configuration
         Setup-FileAssociations -Configuration $Configuration
-        if(Test-Path ".\append_custom.ps1"){
-            & ".\$Configuration\scripts\append_custom.ps1"
+        if(Test-Path ".\append.ps1"){
+            & ".\$Configuration\scripts\append.ps1"
         }
 
 
