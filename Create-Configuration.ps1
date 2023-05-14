@@ -78,7 +78,7 @@ do{
         if(PromptYesNo "Do you want to read all installed winget packages?"){
             Write-Host "Reading installed winget packages from current installation" -ForegroundColor Green
             & winget export ".\from-winget.json" | Out-Null
-            $Install["FromWinget"] = Get-Content ".\from-winget.json"
+            $Install["FromWinget"] = Get-Content ".\from-winget.json" | Where-Object {$_ -like '*PackageIdentifier*'} | ForEach-Object {$_.Split(":")[1].Replace('"','').Trim()}
             Remove-Item ".\from-winget.json"
         }
     }
