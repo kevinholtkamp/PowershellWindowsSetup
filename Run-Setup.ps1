@@ -509,14 +509,17 @@ function Setup-Powershell(){
         [Parameter(Position = 0)]
         [String] $Configuration = "default",
 
-        [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
-        [String[]] $Modules
+        [Parameter(Position = 1)]
+        [String[]] $Modules,
+
+        [Parameter(Position = 2, ValueFromRemainingArguments = $true)]
+        [String[]] $PackageProviders
     )
     Write-Host "Setting up Powershell" -ForegroundColor $ProgressColor
     Update-Help -ErrorAction "silentlyContinue"
 
     if(Test-Path ".\$Configuration\powershell\packageprovider.txt"){
-        Write-Verbose "Installing packageproviders"
+        Write-Verbose "Installing packageproviders from file"
         foreach($PackageProvider in (Get-Content ".\$Configuration\powershell\packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
             if(Get-PackageProvider $PackageProvider -ErrorAction "silentlyContinue"){
                 Write-Verbose "PackageProvider $PackageProvider is already installed, skipping..."
@@ -527,10 +530,24 @@ function Setup-Powershell(){
                 Write-Verbose "Done installing packageprovider $PackageProvider"
             }
         }
-        Write-Verbose "Done installing packageproviders"
+        Write-Verbose "Done installing packageproviders from file"
     }
     else{
         Write-Verbose "No powershell-packageprovider file found"
+    }
+    if($Modules){
+        Write-Verbose "Installing packageproviders from parameter"
+        foreach($PackageProvider in $Modules){
+            if(Get-PackageProvider $PackageProvider -ErrorAction "silentlyContinue"){
+                Write-Verbose "PackageProvider $PackageProvider is already installed, skipping..."
+            }
+            else{
+                Write-Verbose "Installing packageprovider $PackageProvider"
+                Install-PackageProvider -Name $PackageProvider -Force -Confirm:$False
+                Write-Verbose "Done installing packageprovider $PackageProvider"
+            }
+        }
+        Write-Verbose "Done installing packageproviders from parameter"
     }
 
     if(Test-Path ".\$Configuration\powershell\module.txt"){
