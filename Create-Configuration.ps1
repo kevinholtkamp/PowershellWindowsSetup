@@ -108,19 +108,23 @@ do{
     $Settings["FileAssociations"] = PromptN "file associations (format: .csv=C:\windows\system32\notepad.exe)"
     #partitions
     if(PromptYesNo "Do you want to read the partition letters from the current installation?"){
-    Write-Host "Reading partition letters from current installation" -ForegroundColor Green
-    $Settings["Partitions"] = [System.Collections.ArrayList]@()
-    Get-Disk | `
-        ForEach-Object {`
-            $Settings["Partitions"].Add("[$($_.SerialNumber)]") | Out-Null; `
-            Get-Partition $_.Number | `
-                ForEach-Object {`
-                    if($_.DriveLetter -and $_.DriveLetter -ne "C"){$Settings["Partitions"].Add("$($_.PartitionNumber)=$($_.DriveLetter)") | Out-Null}}}
+        Write-Host "Reading partition letters from current installation" -ForegroundColor Green
+        $Settings["Partitions"] = [System.Collections.ArrayList]@()
+        Get-Disk | `
+            ForEach-Object {`
+                $Settings["Partitions"].Add("[$($_.SerialNumber)]") | Out-Null; `
+                Get-Partition $_.Number | `
+                    ForEach-Object {`
+                        if($_.DriveLetter -and $_.DriveLetter -ne "C"){
+                            $Settings["Partitions"].Add("$($_.PartitionNumber)=$($_.DriveLetter)") | Out-Null
+                        }
+                    }
+            }
     }
     #registry
-    #symlinks
+    #symlinks ToDo angucken
     if(PromptYesNo "Do you want to read symlinks from current installation?"){
-        $FoldersToSearch = PromptN "folders to search for symlinks"
+        $FoldersToSearch = PromptN "folders to search for symlinks (Enter none for defaults)"
         if(!$FoldersToSearch){
             $FoldersToSearch = @("$env:USERPROFILE\AppData", "D:\", "E:\", "C:\Users\Public\Documents\")
         }
