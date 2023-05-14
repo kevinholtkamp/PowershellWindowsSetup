@@ -1,6 +1,6 @@
 param(
     [Parameter(Position = 0)]
-    [String] $Configuration,
+    [String] $Configuration = "default",
 
     [Parameter(Position = 1)]
     [String] $ProgressColor = "Green"
