@@ -631,6 +631,7 @@ function Start-Setup(){
     Stop-Transcript
 }
 
-if($Configuration){
+if($Configuration -and $MyInvocation.InvocationName -ne "."){
+    Write-Host "Invocation: $($MyInvocation.InvocationName)"
     Start-Setup $Configuration -ErrorAction "Stop"
 }
