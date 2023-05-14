@@ -14,7 +14,7 @@ function PromptN($Item){
         Write-Host "Another one: " -ForegroundColor Blue -NoNewline
         $Input = Read-Host
     }
-    $Return
+    return $Return
 }
 function PromptYesNo($Prompt){
     Write-Host "$Prompt (yes/no): " -ForegroundColor Blue -NoNewline
@@ -78,7 +78,7 @@ do{
         }
     }
     #Remove bloatware
-    $Install["RemoveBloatware"] = PromptN "bloatwares (wildcards permitted)"
+    $Install["RemoveBloatware"] = PromptN "bloatwares to remove (wildcards permitted)"
 
 #powershell
     $Powershell = @{}
@@ -125,8 +125,7 @@ do{
         foreach($Folder in $FoldersToSearch){
             $LLinks = Get-ChildItem $Folder -Recurse -ErrorAction SilentlyContinue | `
             Where-Object {Get-SymlinkTarget $_.FullName} | `
-                ForEach-Object `
-                    -Begin {
+            ForEach-Object -Begin {
                 $Out = @{}
             } -Process {
                 $Out.Add($_.FullName, (Get-SymlinkTarget $_.FullName)) | Out-Null
