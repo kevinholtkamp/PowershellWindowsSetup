@@ -7,7 +7,7 @@
       <ReadOnly>true</ReadOnly>
     </MappedFolder>
     <MappedFolder>
-      <HostFolder>Y:\PowershellRepository</HostFolder>
+      <HostFolder>\\10.0.0.2\PowershellRepository</HostFolder>
 	  <SandboxFolder>C:\Users\WDAGUtilityAccount\PowershellRepository</SandboxFolder>
       <ReadOnly>true</ReadOnly>
     </MappedFolder>
