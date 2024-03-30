@@ -503,6 +503,22 @@ function Setup-Partitions(){
     }
 }
 
+function Import-GPO(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String] $Configuration = "default"
+    )
+    if(Test-Path ".\$Configuration\settings\gpedit.txt"){
+        Write-Host "Importing GPO from file"
+        Import-GPO -BackupGPOName "Test-GPO" -Path ".\$Group\settings\gpedit.txt"
+        Write-Host "Done importing GPO from file"
+    }
+    else{
+        Write-Host "No gpedit file found"
+    }
+}
+
 function Setup-Powershell(){
     [CmdletBinding()]
     param(
