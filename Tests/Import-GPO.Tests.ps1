@@ -1,17 +1,14 @@
 BeforeAll {
-
-    . .\setup.ps1
-
     . .\Tests\CommonTestParameters.ps1
 }
 
 Describe "Import-GPO"{
-    #    Context "Import-GPO"{
-    #        BeforeAll{
-    #            $DebugPreference = "continue"
-    #            Import-GPO -Group $TestGroup
-    #            $DebugPreference = "silentlycontinue"
-    #        }
-    #        #ToDo
-    #    }
+    Context "Import-GPO"{
+        BeforeAll{
+            Set-Content ".\$TestConfiguration\settings\gpedit.txt" ""
+        }
+        It "Test"{
+            Import-GPO -Configuration $TestConfiguration
+        }
+    }
 }
