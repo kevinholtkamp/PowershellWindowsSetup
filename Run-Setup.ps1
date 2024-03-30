@@ -35,38 +35,77 @@ function Load-Registry(){
     [CmdletBinding()]
     param(
         [Parameter(Position = 0)]
-        [String] $Configuration = "default"
+        [String] $Configuration = "default",
+
+        [Parameter(Position = 1)]
+        [String[]] $RegistryFile,
+
+        [Parameter(Position = 2)]
+        [HashTable] $RegistryData
     )
-    if(Test-Path ".\$Configuration\settings\registry.reg"){
-        Write-Host "Importing registry file" -ForegroundColor $ProgressColor
-        reg import ".\$Configuration\settings\registry.reg"
-        Write-Host "Done importing registry file" -ForegroundColor $ProgressColor
+    if($PSCmdlet.ParameterSetName -eq "Configuration"){
+        if(Test-Path ".\$Configuration\settings\registry.reg"){
+            Write-Host "Importing registry file" -ForegroundColor $ProgressColor
+            reg import ".\$Configuration\settings\registry.reg"
+            Write-Host "Done importing registry file" -ForegroundColor $ProgressColor
+        }
+        else{
+            Write-Host "Cannot find registry file" -ForegroundColor $ProgressColor
+        }
     }
-    else{
-        Write-Host "Cannot find registry file" -ForegroundColor $ProgressColor
+    if($RegistryData){
+        Write-Verbose "Parameter RegistryData"
+        New-PSDrive -Name HKU -PsProvider Registry HKEY_USERS | out-null
+        foreach($path in $RegistryData.Keys){
+            Write-Verbose "Looping values for $path"
+            $items = $RegistryData[$path]
+            foreach($key in $items.Keys){
+                $value = $items[$key]
+                Write-Verbose "Setting key $key to value $value"
+
+                $FinalPath = if($path.Contains(":")){$path}else{"Registry::$path"}
+                $FinalName = $key
+                $FinalType, $FinalValue = switch -wildcard ($value){
+                    "dword:*" {
+                        "dword", $value.Substring(6)
+                    }
+                    "qword:*" {
+                        "qword", $value.Substring(6)
+                    }
+                    "binary:*" {
+                        "binary", $value.Substring(6)
+                    }
+                    Default{
+                        "String", $value
+                    }
+                }
+
+                Write-Verbose "Final path: $FinalPath, Final name $FinalName, Final value $FinalValue, Final type $FinalType"
+                if($FinalValue -eq "-"){
+                    Write-Verbose "Removing because of final value $FinalValue"
+                    Remove-ItemProperty -Path $FinalPath -Name $FinalName -Force
+                }
+                elseif(Get-ItemProperty -Path $FinalPath -Name $FinalName -ErrorAction SilentlyContinue){
+                    Write-Verbose "Changing value: Final path: $FinalPath, Final name $FinalName, Final value $FinalValue, Final type $FinalType"
+                    Set-ItemProperty -Path $FinalPath -Name $FinalName -Value $FinalValue -Force
+                }
+                else{
+                    Write-Verbose "New value: Final path: $FinalPath, Final name $FinalName, Final value $FinalValue, Final type $FinalType"
+                    New-ItemProperty -Path $FinalPath -Name $FinalName -Value $FinalValue -PropertyType $FinalType -Force
+                }
+            }
+        }
     }
 }
 
 function Create-Symlinks(){
     [CmdletBinding()]
     param(
-        [Parameter(Position = 0, ParameterSetName = 'Configuration')]
-        [String] $Configuration = "default",
-
         [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
         [Hashtable] $IniContent
     )
     Write-Host "Creating Symlinks" -ForegroundColor $ProgressColor
 
-    if($PSCmdlet.ParameterSetName -eq "Configuration"){
-        if(Test-Path ".\$Configuration\settings\symlinks.ini"){
-            $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\symlinks.ini" -IgnoreComments
-        }
-        else{
-            Write-Host "No symlinks.ini file found" -ForegroundColor $ProgressColor
-            return
-        }
-    }
     if($IniContent){
         foreach($LinkPath in $IniContent.Keys){
             Write-Verbose "Creating Symlinks for LinkPath $LinkPath"
@@ -253,23 +292,21 @@ function Install-Programs(){
         [String] $Configuration = "default",
 
         [Parameter(Position = 1)]
-        [String[]] $FromURL,
-        [Parameter(Position = 2)]
-        [String[]] $FromChocolatey,
-        [Parameter(Position = 3)]
-        [String[]] $FromWinget
+        [String[]] $FromURL
     )
     Write-Host "Installing programs" -ForegroundColor $ProgressColor
 
+    #From exe
     foreach($ExeFile in Get-Childitem ".\$Configuration\install\*.exe"){
         Write-Verbose "Installing $ExeFile from file"
         Start-Process -FilePath "$ExeFile" -ArgumentList "/S"
         Write-Verbose "Done installing $ExeFile from file"
     }
 
-    if(Test-Path ".\$Configuration\install\from-url.txt"){
+    #From URL
+    if($FromURL){
         Write-Verbose "Installing from url"
-        foreach($URL in (Get-Content ".\$Configuration\install\from-url.txt" | Where-Object {$_ -notlike ";*"})){
+        foreach($URL in $FromURL){
             Write-Verbose "Installing $URL from url"
             $Index++
             (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
@@ -279,119 +316,94 @@ function Install-Programs(){
         }
         Write-Verbose "Done installing from url"
     }
-    else{
-        Write-Verbose "No install from-url file found"
-    }
 
-    if($FromURL){
-        Write-Verbose "Installing from url from parameter"
-        foreach($URL in $FromURL){
-            Write-Verbose "Installing $URL from url"
-            $Index++
-            (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
-            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" -Wait | Out-Null
-            Remove-Item "$($Env:TEMP)\$Index.exe" -Force -ErrorAction "silentlycontinue"
-            Write-Verbose "Done installing $URL from url"
-        }
-        Write-Verbose "Done installing from url from parameter"
-    }
+    Write-Host "Done installing programs" -ForegroundColor $ProgressColor
+}
 
-    if(Test-Path ".\$Configuration\install\from-chocolatey.txt"){
-        if(!(Get-Command "choco" -errorAction SilentlyContinue)){
-            Write-Verbose "Installing chocolatey"
-            $ChocolateyJob = Start-Job {
-                Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
-            }
-            if($ChocolateyJob | Wait-Job -Timeout 120){
-                Write-Verbose "Done installing chocolatey"
-            }
-            else{
-                Stop-Job $ChocolateyJob
-                Write-Verbose "Timeout while installing chocolatey, skipping..."
-            }
+function Install-Choco(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String[]] $Packages,
+        [Parameter(Position = 1)]
+        [HashTable] $Sources
+    )
+    Write-Host "Installing programs from Chocolatey" -ForegroundColor $ProgressColor
+
+    #Installing Chocolatey
+    if(!(Get-Command "choco" -errorAction SilentlyContinue)){
+        Write-Verbose "Installing chocolatey"
+        $ChocolateyJob = Start-Job {
+            Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
         }
-        if(Get-Command "choco" -errorAction SilentlyContinue){
-            choco feature enable -n allowGlobalConfirmation -ErrorAction SilentlyContinue
-            if(Test-Path ".\$Configuration\install\chocolatey-repository.ini"){
-                Write-Verbose "Removing default repository and loading new repositories from file"
-                choco source remove -n=chocolatey
-                $Sources = Get-IniContent -FilePath ".\$Configuration\install\chocolatey-repository.ini" -IgnoreComments
-                foreach($Source in $Sources.Keys){
-                    $Splatter = $Sources[$Source]
-                    choco source add --name $Source @Splatter
-                }
-                Write-Verbose "Done removing default repository and loading new repositories from file"
-            }
-            Write-Verbose "Installing from chocolatey"
-            foreach($Install in (Get-Content ".\$Configuration\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"})){
-                Write-Verbose "Installing $Install from chocolatey"
-                choco install $Install --limit-output --ignore-checksum
-                choco pin add -n="$Install"
-                Write-Verbose "Done installing $Install from chocolatey"
-            }
-            Write-Verbose "Done installing from chocolatey"
+        if($ChocolateyJob | Wait-Job -Timeout 120){
+            Write-Verbose "Done installing chocolatey"
         }
         else{
-            Write-Verbose "Chocolatey not installed or requires a restart after install, not installing packages"
+            Stop-Job $ChocolateyJob
+            Write-Verbose "Timeout while installing chocolatey, skipping..."
         }
-        Write-Verbose "Done installing from chocolatey"
     }
-    else{
-        Write-Verbose "No install from-chocolatey file found"
-    }
-    if($FromChocolatey -and (Get-Command "choco" -errorAction SilentlyContinue)){
-        Write-Verbose "Installing from chocolatey from parameter"
-        foreach($Install in $FromChocolatey){
+    if(Get-Command "choco" -errorAction SilentlyContinue){
+        #Setting up Chocolatey repositories
+        choco feature enable -n allowGlobalConfirmation -ErrorAction SilentlyContinue
+        if($Sources){
+            Write-Verbose "Removing default repository and loading new repositories from file"
+            choco source remove -n=chocolatey
+            foreach($Source in $Sources.Keys){
+                $Splatter = $Sources[$Source]
+                choco source add --name $Source @Splatter
+            }
+            Write-Verbose "Done removing default repository and loading new repositories from file"
+        }
+        #Installing from Chocolatey
+        Write-Verbose "Installing from chocolatey"
+        foreach($Install in $Packages){
             Write-Verbose "Installing $Install from chocolatey"
             choco install $Install --limit-output --ignore-checksum
             choco pin add -n="$Install"
             Write-Verbose "Done installing $Install from chocolatey"
         }
-        Write-Verbose "Done installing from chocolatey from parameter"
-    }
-
-    if(Test-Path ".\$Configuration\install\from-winget.txt"){
-        if(!(Get-Command "winget" -errorAction SilentlyContinue)){
-            Write-Verbose "Installing winget"
-            if(Start-Process "ms-appinstaller:?source=https://aka.ms/getwinget" -ErrorAction SilentlyContinue | Wait-Process -Timeout 120 -ErrorAction SilentlyContinue){
-                Write-Verbose "Done installing winget"
-            }
-            else{
-                Write-Verbose "Timout while installing winget, skipping..."
-            }
-        }
-        if(Get-Command "winget" -errorAction SilentlyContinue){
-            Write-Verbose "Installing from winget"
-            foreach($Install in (Get-Content ".\$Configuration\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})){
-                Write-Verbose "Installing $Install from winget"
-                winget install $Install
-                Write-Verbose "Done installing $Install from winget"
-            }
-            Write-Verbose "Done installing from winget"
-        }
-        else{
-            Write-Verbose "Winget not installed, not installing packages"
-        }
-        Write-Verbose "Done installing from winget"
+        Write-Verbose "Done installing from chocolatey"
     }
     else{
-        Write-Verbose "No install from-winget file found"
+        Write-Verbose "Chocolatey not installed or requires a restart after install, not installing any packages"
     }
 
-    if($FromWinget -and (Get-Command "winget" -errorAction SilentlyContinue)){
-        Write-Verbose "Installing from winget from parameter"
-        foreach($Install in $FromWinget){
+    Write-Host "Done installing programs from Chocolatey" -ForegroundColor $ProgressColor
+}
+
+function Install-Winget(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String[]] $Packages
+    )
+    Write-Host "Installing from winget" -ForegroundColor $ProgressColor
+
+    if(!(Get-Command "winget" -errorAction SilentlyContinue)){
+        Write-Verbose "Installing winget"
+        if(Start-Process "ms-appinstaller:?source=https://aka.ms/getwinget" -ErrorAction SilentlyContinue | Wait-Process -Timeout 120 -ErrorAction SilentlyContinue){
+            Write-Verbose "Done installing winget"
+        }
+        else{
+            Write-Verbose "Timout while installing winget, skipping..."
+        }
+    }
+    if(Get-Command "winget" -errorAction SilentlyContinue){
+        Write-Verbose "Installing from winget"
+        foreach($Install in $Packages){
             Write-Verbose "Installing $Install from winget"
             winget install $Install
             Write-Verbose "Done installing $Install from winget"
         }
-        Write-Verbose "Done installing from winget from parameter"
+        Write-Verbose "Done installing from winget"
     }
     else{
-        Write-Verbose "No winget modules passed"
+        Write-Verbose "Winget not installed, not installing packages"
     }
 
-    Write-Host "Done installing programs" -ForegroundColor $ProgressColor
+    Write-Host "Done installing from winget" -ForegroundColor $ProgressColor
 }
 
 function Remove-Bloatware(){
@@ -517,7 +529,7 @@ function Setup-Powershell(){
     )
     Write-Host "Setting up Powershell" -ForegroundColor $ProgressColor
     Update-Help -ErrorAction "silentlyContinue"
-
+    #ToDo add check if configuration is bound here and everywhere else
     if(Test-Path ".\$Configuration\powershell\packageprovider.txt"){
         Write-Verbose "Installing packageproviders from file"
         foreach($PackageProvider in (Get-Content ".\$Configuration\powershell\packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
@@ -620,14 +632,28 @@ function Start-Setup(){
         if(Test-Path ".\prepend.ps1"){
             & ".\$Configuration\scripts\prepend.ps1"
         }
-        Setup-Powershell -Configuration $Configuration
-        Setup-Partitions -Configuration $Configuration
-        Create-Symlinks -Configuration $Configuration
-        Load-Registry -Configuration $Configuration
-        Setup-Hosts -Configuration $Configuration
-        Remove-Bloatware -Configuration $Configuration
-        Install-Programs -Configuration $Configuration
-        Setup-FileAssociations -Configuration $Configuration
+        Setup-Powershell `
+            -Modules (Get-Content ".\$Configuration\powershell\module.txt") `
+            -PackageProviders (Get-Content ".\$Configuration\powershell\packageprovider.txt")
+        Setup-Partitions `
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments)
+        Create-Symlinks `
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\symlinks.ini" -IgnoreComments)
+        Load-Registry `
+            -RegistryData (Get-IniContent -FilePath ".\$Configuration\settings\registry.reg" -IgnoreComments)
+        Setup-Hosts `
+            -Hosts (Get-Content ".\$Configuration\hosts\from-file.txt") `
+            -FromURL (Get-Content -Path ".\$Configuration\hosts\from-url.txt" | Where-Object {$_ -notlike ";*"})
+        Remove-Bloatware `
+            -Bloatware (Get-Content ".\$Configuration\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";*"})
+        Install-Programs `
+            -FromURL (Get-Content ".\$Configuration\install\from-url.txt" | Where-Object {$_ -notlike ";*"})
+        Install-Choco `
+            -Packages (Get-Content ".\$Configuration\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"}) `
+            -Repositories (Get-IniContent ".\$Configuration\install\chocolatey-repository.ini" | Where-Object {$_ -notlike ";*"})
+        Install-Winget (Get-Content ".\$Configuration\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})
+        Setup-FileAssociations `
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments)
         if(Test-Path ".\append.ps1"){
             & ".\$Configuration\scripts\append.ps1"
         }
