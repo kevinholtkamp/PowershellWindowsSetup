@@ -6,7 +6,7 @@ if(Test-Path $SandboxExecutable){
     Start-Process  `
         -WindowStyle ([System.Diagnostics.ProcessWindowStyle]::Maximized) `
         -FilePath $SandboxExecutable `
-        -ArgumentList $ConfigFile
+        -ArgumentList $ConfigFile `
 }
 else{
     Write-Error "Sandbox not enabled"
