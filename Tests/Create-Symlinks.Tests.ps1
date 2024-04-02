@@ -72,7 +72,7 @@ Describe "Create-Symlinks"{
 
             {
                 Create-Symlinks -IniContent @{
-                    "[TestDrive:\Links]" = @{
+                    "TestDrive:\Links" = @{
                         "Lock" = "TestDrive:\Original\Lock"
                     }
                 } -ErrorAction "stop"
@@ -85,7 +85,7 @@ Describe "Create-Symlinks"{
 
             {
                 Create-Symlinks -IniContent @{
-                    "[TestDrive:\Links]" = @{
+                    "TestDrive:\Links" = @{
                         "Lock" = "TestDrive:\Original\Lock"
                     }
                 } -ErrorAction "stop"
@@ -102,7 +102,7 @@ Describe "Create-Symlinks"{
 
             {
                 Create-Symlinks -IniContent @{
-                    "[TestDrive:\Links]" = @{
+                    "TestDrive:\Links" = @{
                         "FileTest" = "TestDrive:\Original\FileTest"
                     }
                 } -ErrorAction "stop"
@@ -115,7 +115,7 @@ Describe "Create-Symlinks"{
 
             {
                 Create-Symlinks -IniContent @{
-                    "[TestDrive:\Links]" = @{
+                    "TestDrive:\Links" = @{
                         "FileTest" = "TestDrive:\Original\FileTest"
                     }
                 } -ErrorAction "stop"
