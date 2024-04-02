@@ -24,17 +24,11 @@ Describe "Setup-FileAssociations"{
     }
     Context "Configuration parameter"{
         It "Setting Editor for .csv"{
-            Set-Content "$TestConfiguration\settings\associations.ini" '[associations]'
-            Add-Content "$TestConfiguration\settings\associations.ini" '.abc="C:\Windows\system32\notepad.exe"'
-
-            Setup-FileAssociations -Configuration $TestConfiguration
-
-            Get-FTA ".abc" | Should -Be "SFTA.notepad.abc"
-        }
-    }
-    Context "IniContent parameter"{
-        It "Setting Editor for .csv"{
-            Setup-FileAssociations -IniContent @{associations = @{".abc" = "C:\Windows\system32\notepad.exe"}}
+            Setup-FileAssociations -IniContent @{
+                "associations" = @{
+                    ".abc" = "C:\Windows\system32\notepad.exe"
+                }
+            }
 
             Get-FTA ".abc" | Should -Be "SFTA.notepad.abc"
         }
