@@ -6,6 +6,12 @@ param(
     [String] $ProgressColor = "Green"
 )
 
+
+function Restore-Backup(){
+    [CmdletBinding()]
+    param()
+}
+
 function Setup-Powershell(){
     [CmdletBinding()]
     param(
@@ -533,6 +539,9 @@ function Start-Setup(){
         Read-Host "Windows update service stopped. Press enter to continue" -ForegroundColor $ProgressColor
 
 
+        #ToDo make backup optional, add zip, make backup folder in configuration, after Install-Programs if winrar is not installed
+        Restore-Backup `
+            -Archive ".\$Configuration\backup.rar"
         if(Test-Path ".\$Configuration\scripts\prepend.ps1"){
             & ".\$Configuration\scripts\prepend.ps1"
         }

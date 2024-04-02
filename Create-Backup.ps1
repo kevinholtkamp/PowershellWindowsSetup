@@ -1,7 +1,3 @@
-function PromptYesNo($Prompt){
-    return 0 -eq ($Host.UI.PromptForChoice($Prompt, "", @("Yes", "No"), 1))
-}
-
 "PSWinRAR", "PSHelperTools" | ForEach-Object {
     if(!(Get-InstalledModule $_ -ErrorAction SilentlyContinue)){
         Install-Module $_ -Force -ErrorAction Stop
