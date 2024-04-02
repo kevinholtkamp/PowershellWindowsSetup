@@ -201,17 +201,10 @@ function Create-Symlinks(){
 function Set-OptionalFeatures(){
     [CmdletBinding()]
     param(
-        [Parameter(Position = 0, ParameterSetName = "Configuration")]
-        [String] $Configuration = "default",
-
         [Parameter(Position = 1, ParameterSetName = "IniContent")]
         [Hashtable] $IniContent
     )
     Write-Host "Setting optional features"
-
-    if($PSCmdlet.ParameterSetName -eq "Configuration"){
-        $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\optionalFeatures.ini" -IgnoreComments
-    }
 
     foreach($Feature in $IniContent["OptionalFeatures"].Keys){
         Write-Verbose "Feature $Feature with targetstate $($IniContent["OptionalFeatures"][$Feature]) and current state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
