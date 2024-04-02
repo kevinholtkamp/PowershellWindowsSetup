@@ -3,61 +3,20 @@ BeforeAll {
 }
 
 Describe "Install-Programs"{
-    function script:Cleanup(){
-        Remove-Item "$TestConfiguration\install\test.exe" -ErrorAction SilentlyContinue
-        Remove-Item "$TestConfiguration\install\from-url.txt" -ErrorAction SilentlyContinue
-        Remove-Item "$TestConfiguration\install\from-chocolatey.txt" -ErrorAction SilentlyContinue
-        Remove-Item "$TestConfiguration\install\from-winget.txt" -ErrorAction SilentlyContinue
-        Remove-Item "$TestConfiguration\install\chocolatey-repository.ini" -ErrorAction SilentlyContinue
-    }
-    BeforeEach{
-        New-Item "$TestConfiguration\install" -ItemType Directory -Force -ErrorAction Silentlycontinue
-
-        Cleanup
-    }
-    AfterEach{
-        Remove-Item "$TestConfiguration\install" -Force -Recurse -ErrorAction SilentlyContinue
-
-        Cleanup
-    }
-    Context "Install from URL from file"{
-        BeforeAll{
-            Mock Start-Process {}
-        }
-        It "Normal installation"{
-            Set-Content "$TestConfiguration\install\from-url.txt" "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.3.3/npp.8.3.3.Installer.x64.exe"
-
-            Install-Programs -Configuration $TestConfiguration
-
-            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -eq "$($Env:TEMP)\1.exe" -and $ArgumentList -eq "/S" -and $Wait -eq $true}
-            "$($Env:TEMP)\1.exe" | Should -Not -Exist
-        }
-        It "Broken URL"{
-            New-Item "$TestConfiguration\install\from-url.txt" -ItemType File
-            Set-Content "$TestConfiguration\install\from-url.txt" "https://google.de/file.exe"
-
-            {Install-Programs -Configuration $TestConfiguration} | Should -Throw
-
-            "$($Env:TEMP)\1.exe" | Should -Not -Exist
-        }
-        It "Non executable file"{
-            New-Item "$TestConfiguration\install\from-url.txt" -ItemType File
-            Set-Content "$TestConfiguration\install\from-url.txt" "https://github.com/kevinholtkamp/PowershellWindowsSetup/blob/94ba53b8ff6964f338afc169225dcb1a6ced3619/README.md"
-
-            Install-Programs -Configuration $TestConfiguration
-
-            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -eq "$($Env:TEMP)\1.exe"}
-            "$($Env:TEMP)\1.exe" | Should -Not -Exist
-        }
-    }
     Context "Install from exe"{
+        BeforeAll{
+            New-Item "$TestConfiguration\install\" -ItemType Directory -Force
+        }
+        AfterAll{
+            Remove-Item "$TestConfiguration\install\" -Recurse -Force -ErrorAction "SilentlyContinue"
+        }
         It "Regular exe file"{
             $Date = Get-Date
-            Copy-Item "C:\Windows\system32\notepad.exe" "$TestConfiguration\install\notepad.exe"
+            Copy-Item "C:\Windows\system32\notepad.exe" "$TestConfiguration\install\notepad.exe" -Force
             New-Item "$TestConfiguration\install\de-DE\" -ItemType Directory -Force
-            Copy-Item "C:\Windows\system32\de-DE\notepad.exe.mui" "$TestConfiguration\install\de-DE\notepad.exe.mui"
+            Copy-Item "C:\Windows\system32\de-DE\notepad.exe.mui" "$TestConfiguration\install\de-DE\notepad.exe.mui" -Force
 
-            Install-Programs -Configuration $TestConfiguration
+            Install-Programs -FromPath @("$TestConfiguration\install\notepad.exe")
 
 #            Get-Process -name "notepad" | Where-Object -Property starttime -ge $Date | Should -Not -Be $null
             $Process = Get-Process -name "notepad" | Where-Object -Property starttime -ge $Date
@@ -75,59 +34,75 @@ Describe "Install-Programs"{
 
             New-Item "$TestConfiguration\install\test.exe" -ItemType File
 
-            Install-Programs -Configuration $TestConfiguration
+            Install-Programs -FromPath @("$TestConfiguration\install\test.exe")
 
 #            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -like "*$TestConfiguration\install\test.exe" -and $ArgumentList -eq "/S" -and $Wait -eq $true}
             Should -Invoke Start-Process -Times 1 -Exactly #-ParameterFilter {$ArgumentList -eq "/S" -and $Wait -eq $true}
 
-            Remove-Item "$TestConfiguration\install\test.exe"
+            Remove-Item "$TestConfiguration\install\test.exe" -Force
         }
     }
-    Context "Install from choco from file"{
+    Context "Install from URL"{
+        BeforeAll{
+            Mock Start-Process {}
+        }
+        It "Normal installation"{
+            Install-Programs -FromURL "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.3.3/npp.8.3.3.Installer.x64.exe"
+
+            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -eq "$($Env:TEMP)\1.exe" -and $ArgumentList -eq "/S" -and $Wait -eq $true}
+            "$($Env:TEMP)\1.exe" | Should -Not -Exist
+        }
+        It "Broken URL"{
+            {
+                Install-Programs -FromURL "https://google.de/file.exe"
+            } | Should -Throw
+
+            "$($Env:TEMP)\1.exe" | Should -Not -Exist
+        }
+        It "Non executable file"{
+            Install-Programs -FromURL "https://github.com/kevinholtkamp/PowershellWindowsSetup/blob/94ba53b8ff6964f338afc169225dcb1a6ced3619/README.md"
+
+            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -eq "$($Env:TEMP)\1.exe"}
+            "$($Env:TEMP)\1.exe" | Should -Not -Exist
+        }
+    }
+    Context "Install from choco"{
         It "Installing choco"{
             Mock Start-Job {0}
             Mock Stop-Job {}
 
-            New-Item "$TestConfiguration\install\from-chocolatey.txt"
-
-            Install-Programs -Configuration $TestConfiguration
+            Install-Choco
 
             Should -Invoke Start-Job -Times 1 -Exactly
+        }
+        It "Installing choco repositories"{
+            function script:choco(){}
+            Mock choco {}
+
+            Install-Choco -Sources @{
+                "chocolatey" = @{
+                    "source" = "https://community.chocolatey.org/api/v2/"
+                    "priority" = "0"
+                }
+            }
+
+            Should -Invoke choco -Times 3 -Exactly
         }
         It "Installing from choco"{
             function script:choco(){}
             Mock choco {}
 
-            New-Item "$TestConfiguration\install\from-chocolatey.txt"
-            Set-Content "$TestConfiguration\install\from-chocolatey.txt" "testChocoPackage"
-
-            Install-Programs -Configuration $TestConfiguration
-
-            Should -Invoke choco -Times 3 -Exactly
-        }
-        It "Chocolatey repository"{
-            function script:choco(){}
-            Mock choco {}
-
-            New-Item "$TestConfiguration\install\from-chocolatey.txt"
-            New-Item "$TestConfiguration\install\chocolatey-repository.ini"
-            Set-Content "$TestConfiguration\install\chocolatey-repository.ini" "[chocolatey]
-source=https://community.chocolatey.org/api/v2/
-priority=1"
-
-            Install-Programs -Configuration $TestConfiguration
+            Install-Choco -Packages "testChocoPackage"
 
             Should -Invoke choco -Times 3 -Exactly
         }
     }
-    Context "Install from Winget from file"{
+    Context "Install from winget"{
         It "Install winget"{
             Mock Start-Process {}
             Mock Wait-Process {}
 
-            New-Item "$TestConfiguration\install\from-winget.txt"
-
-            Install-Programs -Configuration $TestConfiguration
+            Install-Winget
 
             Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -eq "ms-appinstaller:?source=https://aka.ms/getwinget"}
         }
@@ -135,52 +110,7 @@ priority=1"
             function script:winget(){}
             Mock winget {}
 
-            New-Item "$TestConfiguration\install\from-winget.txt"
-            Set-Content "$TestConfiguration\install\from-winget.txt" "wingetTestPackage"
-
-            Install-Programs -Configuration $TestConfiguration
-
-            Should -Invoke winget -Times 1 -Exactly
-        }
-    }
-    Context "Install from URL from parameter"{
-        BeforeAll{
-            Mock Start-Process {}
-        }
-        It "Normal installation"{
-            Install-Programs -Configuration "" -FromURL "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.3.3/npp.8.3.3.Installer.x64.exe"
-
-            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -eq "$($Env:TEMP)\1.exe" -and $ArgumentList -eq "/S" -and $Wait -eq $true}
-            "$($Env:TEMP)\1.exe" | Should -Not -Exist
-        }
-        It "Broken URL"{
-            {Install-Programs -Configuration "" -FromURL "https://google.de/file.exe"} | Should -Throw
-
-            "$($Env:TEMP)\1.exe" | Should -Not -Exist
-        }
-        It "Non executable file"{
-            Install-Programs -Configuration "" -FromURL "https://github.com/kevinholtkamp/PowershellWindowsSetup/blob/94ba53b8ff6964f338afc169225dcb1a6ced3619/README.md"
-
-            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -eq "$($Env:TEMP)\1.exe"}
-            "$($Env:TEMP)\1.exe" | Should -Not -Exist
-        }
-    }
-    Context "Install from choco from parameter"{
-        It "Installing from choco"{
-            function script:choco(){}
-            Mock choco {}
-
-            Install-Programs -Configuration "" -FromChocolatey "testChocoPackage"
-
-            Should -Invoke choco -Times 2 -Exactly
-        }
-    }
-    Context "Install from winget from parameter"{
-        It "Install from winget"{
-            function script:winget(){}
-            Mock winget {}
-
-            Install-Programs -Configuration "" -FromWinget "wingetTestPackage"
+            Install-Winget -Packages "wingetTestPackage"
 
             Should -Invoke winget -Times 1 -Exactly
         }

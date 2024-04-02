@@ -3,12 +3,6 @@ BeforeAll {
 }
 
 Describe "Remove-Bloatware"{
-    BeforeAll{
-        New-Item "$TestConfiguration\install" -ItemType Directory -Force -ErrorAction Silentlycontinue
-    }
-    AfterAll{
-        Remove-Item "$TestConfiguration\install" -Force -Recurse -ErrorAction SilentlyContinue
-    }
     Context "Test with bloatware"{
         BeforeAll{
             Mock Get-AppxPackage {
@@ -24,15 +18,8 @@ Describe "Remove-Bloatware"{
             }
             Mock Remove-AppxPackage {}
         }
-        AfterAll{
-            Remove-Item "$TestConfiguration\install\remove-bloatware.txt"
-        }
         It "Remove mocked bloatware"{
-            Set-Content "$TestConfiguration\install\remove-bloatware.txt" "*candy*"
-            Add-Content "$TestConfiguration\install\remove-bloatware.txt" "*king*"
-            Add-Content "$TestConfiguration\install\remove-bloatware.txt" "*xing*"
-
-            Remove-Bloatware -Configuration $TestConfiguration
+            Remove-Bloatware -Bloatware @("*candy*", "*king*", "*xing*")
 
             Should -Invoke Remove-AppxPackage -Times 1 -ParameterFilter {"Candy Crush"}
             Should -Invoke Remove-AppxPackage -Times 1 -ParameterFilter {"King"}
@@ -40,15 +27,7 @@ Describe "Remove-Bloatware"{
             Should -Invoke Remove-AppxPackage -Times 3 -Exactly
         }
         It "Try removing not installed app"{
-            Set-Content "$TestConfiguration\install\remove-bloatware.txt" ""
-            Add-Content "$TestConfiguration\install\remove-bloatware.txt" "awdawdad"
-
-            {Remove-Bloatware -Configuration $TestConfiguration} | Should -Throw
-        }
-        It "-Bloatware Parameter"{
-            Remove-Bloatware -Configuration "" -Bloatware "Candy Crush"
-
-            Should -Invoke Remove-AppxPackage -Times 1 -ParameterFilter {"Candy Crush"}
+            {Remove-Bloatware -Bloatware @("", "awdawdad")} | Should -Throw
         }
     }
 }
