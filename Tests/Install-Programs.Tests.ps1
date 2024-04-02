@@ -8,7 +8,7 @@ Describe "Install-Programs"{
             New-Item "$TestConfiguration\install\" -ItemType Directory -Force
         }
         AfterAll{
-            Remove-Item "$TestConfiguration\install\" -Force -ErrorAction "SilentlyContinue"
+            Remove-Item "$TestConfiguration\install\" -Recurse -Force -ErrorAction "SilentlyContinue"
         }
         It "Regular exe file"{
             $Date = Get-Date
@@ -16,7 +16,7 @@ Describe "Install-Programs"{
             New-Item "$TestConfiguration\install\de-DE\" -ItemType Directory -Force
             Copy-Item "C:\Windows\system32\de-DE\notepad.exe.mui" "$TestConfiguration\install\de-DE\notepad.exe.mui" -Force
 
-            Install-Programs -Configuration $TestConfiguration
+            Install-Programs -FromPath @("$TestConfiguration\install\notepad.exe")
 
 #            Get-Process -name "notepad" | Where-Object -Property starttime -ge $Date | Should -Not -Be $null
             $Process = Get-Process -name "notepad" | Where-Object -Property starttime -ge $Date
@@ -34,7 +34,7 @@ Describe "Install-Programs"{
 
             New-Item "$TestConfiguration\install\test.exe" -ItemType File
 
-            Install-Programs -Configuration $TestConfiguration
+            Install-Programs -FromPath @("$TestConfiguration\install\test.exe")
 
 #            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {$FilePath -like "*$TestConfiguration\install\test.exe" -and $ArgumentList -eq "/S" -and $Wait -eq $true}
             Should -Invoke Start-Process -Times 1 -Exactly #-ParameterFilter {$ArgumentList -eq "/S" -and $Wait -eq $true}
