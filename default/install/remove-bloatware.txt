@@ -1,6 +1,5 @@
 *king*
 *xing*
-Microsoft.549981C3F5F10
 *EclipseManager*
 *ActiproSoftwareLLC*
 *AdobeSystemsIncorporated.AdobePhotoshopExpress*
@@ -26,6 +25,7 @@ Microsoft.549981C3F5F10
 *HiddenCity*
 *AdobePhotoshopExpress*
 *HotspotShieldFreeVPN*
+Microsoft.549981C3F5F10
 Microsoft.3DBuilder
 Microsoft.Microsoft3DViewer
 Microsoft.AppConnector

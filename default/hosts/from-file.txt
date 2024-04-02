@@ -1,1 +1,2 @@
 192.168.178.1       fritz.box
+1.1.1.1             one.one.one.one

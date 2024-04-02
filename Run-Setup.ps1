@@ -1,6 +1,6 @@
 param(
     [Parameter(Position = 0)]
-    [String] $Configuration,
+    [String] $Configuration = "default",
 
     [Parameter(Position = 1)]
     [String] $ProgressColor = "Green"
@@ -45,66 +45,120 @@ function Setup-Network(){
     }
 }
 
-function Setup-FileAssociations(){
-    [CmdletBinding()]
-    param(
-    [Parameter(Position = 0, ParameterSetName = 'Configuration')]
-    [String] $Configuration = "default",
-
-    [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
-    [Hashtable] $IniContent
-    )
-    Write-Host "Setting up file associations" -ForegroundColor $ProgressColor
-
-    if($PSCmdlet.ParameterSetName -eq "Configuration" -and (Test-Path ".\$Configuration\settings\associations.ini")){
-        $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments
-    }
-    foreach($Extension in $IniContent["associations"].Keys){
-        $File = $IniContent["associations"][$Extension]
-        Write-Verbose "Creating association $File for file type $Extension"
-        Register-FTA $File $Extension
-        Write-Verbose "Done creating association $File for file type $Extension"
-    }
-
-    Write-Host "Done setting up file associations" -ForegroundColor $ProgressColor
-}
-
-function Load-Registry(){
+function Setup-Powershell(){
     [CmdletBinding()]
     param(
         [Parameter(Position = 0)]
-        [String] $Configuration = "default"
+        [String[]] $Modules,
+
+        [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
+        [String[]] $PackageProviders
     )
-    if(Test-Path ".\$Configuration\settings\registry.reg"){
-        Write-Host "Importing registry file" -ForegroundColor $ProgressColor
-        reg import ".\$Configuration\settings\registry.reg"
-        Write-Host "Done importing registry file" -ForegroundColor $ProgressColor
+    Write-Host "Setting up Powershell" -ForegroundColor $ProgressColor
+    Update-Help -ErrorAction "silentlyContinue"
+    if($PackageProviders){
+        Write-Verbose "Installing packageproviders from parameter"
+        foreach($PackageProvider in $PackageProviders){
+            if(Get-PackageProvider $PackageProvider -ErrorAction "silentlyContinue"){
+                Write-Verbose "PackageProvider $PackageProvider is already installed, skipping..."
+            }
+            else{
+                Write-Verbose "Installing packageprovider $PackageProvider"
+                Install-PackageProvider -Name $PackageProvider -Force -Confirm:$False
+                Write-Verbose "Done installing packageprovider $PackageProvider"
+            }
+        }
+        Write-Verbose "Done installing packageproviders from parameter"
+    }
+
+    if($Modules){
+        Write-Verbose "Installing modules from parameter"
+        foreach($PowershellModule in $Modules){
+            if(Get-InstalledModule $PowershellModule -ErrorAction "silentlyContinue"){
+                Write-Verbose "Module $PowershellModule is already installed, skipping..."
+            }
+            else{
+                Write-Verbose "Installing module $PowershellModule"
+                Install-Module -Name $PowershellModule -Force -Confirm:$False
+                Write-Verbose "Done installing module $PowershellModule"
+            }
+        }
+        Write-Verbose "Done installing modules from parameter"
     }
     else{
-        Write-Host "Cannot find registry file" -ForegroundColor $ProgressColor
+        Write-Verbose "No powershell modules passed"
+    }
+
+    Write-Host "Done setting up Powershell" -ForegroundColor $ProgressColor
+}
+
+function Setup-Partitions(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
+        [Hashtable] $IniContent
+    )
+    Write-Host "Setting up partitions" -ForegroundColor $ProgressColor
+    if($IniContent){
+        if($null -ne $IniContent){
+            #Find all driveletters that are wanted
+            $UnusableDriveLetters = @()
+            foreach($Drive in $IniContent.Keys){
+                foreach($Partition in $IniContent["$Drive"].Keys){
+                    $UnusableDriveLetters += $IniContent["$Drive"]["$Partition"]
+                }
+            }
+            Write-Verbose "Found all wanted driveletters: $UnusableDriveLetters"
+            #Find all drive letters that are currently in use
+            $UnusableDriveLetters += ((Get-PSDrive).Root -match "^[A-Z]:\\").Substring(0, 1)
+            Write-Verbose "Found all wanted and currently used driveletters: $UnusableDriveLetters"
+            #Find all free usable drive letters (Not currently used and not wanted)
+            65..90|foreach-object{
+                if(-not $UnusableDriveLetters.Contains("$([char]$_)")){
+                    $UsableDriveLetters += [char]$_
+                }
+            }
+            $UsableDriveLetterIndex = 0
+            Write-Verbose "Found all freely usable drive letters (Not used  & not wanted): $UsableDriveLetters"
+            #Temporarily assign all partitions to one of those letters
+            foreach($Drive in $IniContent.Keys){
+                foreach($Partition in $IniContent["$Drive"].Keys){
+                    Write-Verbose "Assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
+                    Get-Disk | Where-Object SerialNumber -EQ "$Drive" | Get-Partition | Where-Object PartitionNumber -EQ $Partition | Set-Partition -NewDriveLetter $UsableDriveLetters[$UsableDriveLetterIndex]
+                    Write-Verbose "Done assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
+                    $UsableDriveLetterIndex++
+                }
+            }
+            Write-Verbose "All partitions set to temporary driveletters"
+            #Assign all partitions to their wanted letter
+            foreach($Drive in $IniContent.Keys){
+                foreach($Partition in $IniContent["$Drive"].Keys){
+                    Write-Verbose "Assigning partition $Partition of drive $Drive to letter $($IniContent["$Drive"]["$Partition"])"
+                    $DriveObject = Get-Disk | Where-Object SerialNumber -EQ "$Drive"
+                    $PartitionObject = Get-Partition -Disk $DriveObject | Where-Object PartitionNumber -EQ $Partition
+                    Set-Partition -InputObject $PartitionObject -NewDriveLetter $IniContent["$Drive"]["$Partition"]
+                    Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($IniContent["$Drive"]["$Partition"])"
+                }
+            }
+            Write-Host "Done setting up partitions" -ForegroundColor $ProgressColor
+        }
+        else{
+            Write-Host "Ini content is empty" -ForegroundColor $ProgressColor
+        }
+    }
+    else{
+        Write-Host "No partition file found" -ForegroundColor $ProgressColor
     }
 }
 
 function Create-Symlinks(){
     [CmdletBinding()]
     param(
-        [Parameter(Position = 0, ParameterSetName = 'Configuration')]
-        [String] $Configuration = "default",
-
         [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
         [Hashtable] $IniContent
     )
     Write-Host "Creating Symlinks" -ForegroundColor $ProgressColor
 
-    if($PSCmdlet.ParameterSetName -eq "Configuration"){
-        if(Test-Path ".\$Configuration\settings\symlinks.ini"){
-            $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\symlinks.ini" -IgnoreComments
-        }
-        else{
-            Write-Host "No symlinks.ini file found" -ForegroundColor $ProgressColor
-            return
-        }
-    }
     if($IniContent){
         foreach($LinkPath in $IniContent.Keys){
             Write-Verbose "Creating Symlinks for LinkPath $LinkPath"
@@ -197,41 +251,70 @@ function Create-Symlinks(){
     Write-Host "Done creating Symlinks" -ForegroundColor $ProgressColor
 }
 
+function Load-Registry(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 1)]
+        [HashTable] $RegistryData
+    )
+    if($RegistryData){
+        Write-Verbose "Parameter RegistryData"
+        New-PSDrive -Name HKU -PsProvider Registry HKEY_USERS | out-null
+        foreach($path in $RegistryData.Keys){
+            Write-Verbose "Looping values for $path"
+            $items = $RegistryData[$path]
+            foreach($key in $items.Keys){
+                $value = $items[$key]
+                Write-Verbose "Setting key $key to value $value"
+
+                $FinalPath = if($path.Contains(":")){$path}else{"Registry::$path"}
+                $FinalName = $key
+                $FinalType, $FinalValue = switch -wildcard ($value){
+                    "dword:*" {
+                        "dword", $value.Substring(6)
+                    }
+                    "qword:*" {
+                        "qword", $value.Substring(6)
+                    }
+                    "binary:*" {
+                        "binary", $value.Substring(6)
+                    }
+                    Default{
+                        "String", $value
+                    }
+                }
+
+                Write-Verbose "Final path: $FinalPath, Final name $FinalName, Final value $FinalValue, Final type $FinalType"
+                if($FinalValue -eq "-"){
+                    Write-Verbose "Removing because of final value $FinalValue"
+                    Remove-ItemProperty -Path $FinalPath -Name $FinalName
+                }
+                elseif(Get-ItemProperty -Path $FinalPath -Name $FinalName -ErrorAction SilentlyContinue){
+                    Write-Verbose "Changing value: Final path: $FinalPath, Final name $FinalName, Final value $FinalValue, Final type $FinalType"
+                    Set-ItemProperty -Path $FinalPath -Name $FinalName -Value $FinalValue
+                }
+                else{
+                    Write-Verbose "New value: Final path: $FinalPath, Final name $FinalName, Final value $FinalValue, Final type $FinalType"
+                    if(-not (Test-Path $FinalPath)){
+                        New-Item -Path $FinalPath -ItemType Directory -Force
+                    }
+                    New-ItemProperty -Path $FinalPath -Name $FinalName -Value $FinalValue -PropertyType $FinalType
+                }
+            }
+        }
+    }
+}
+
 function Setup-Hosts(){
     [CmdletBinding()]
     param(
         [Parameter(Position = 0)]
-        [String] $Configuration = "default",
-
-        [Parameter(Position = 1)]
         [String[]] $Hosts,
 
-        [Parameter(Position = 2, ValueFromRemainingArguments = $true)]
+        [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
         [String[]] $FromURL
     )
     Write-Host "Setting up hosts file" -ForegroundColor $ProgressColor
-
-    if(Test-Path ".\$Configuration\hosts\from-file.txt"){
-        Write-Verbose "Adding hosts from file"
-        Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Get-Content -Path ".\$Configuration\hosts\from-file.txt")
-        Write-Verbose "Done adding hosts from file"
-    }
-    else{
-        Write-Verbose "No host from-file file found"
-    }
-
-    if(Test-Path ".\$Configuration\hosts\from-url.txt"){
-        Write-Verbose "Adding hosts from url"
-        foreach($Line in (Get-Content -Path ".\$Configuration\hosts\from-url.txt" | Where-Object {$_ -notlike ";*"})){
-            Write-Verbose "Loading hosts from $Line"
-            Add-Content -Path "$($Env:WinDir)\system32\Drivers\etc\hosts" -Value (Invoke-WebRequest -URI $Line -UseBasicParsing).Content
-            Write-Verbose "Done loading hosts from $Line"
-        }
-        Write-Verbose "Done adding hosts from url"
-    }
-    else{
-        Write-Verbose "No host from-url file found"
-    }
 
     if($FromURL){
         Write-Verbose "Adding hosts from url from parameter"
@@ -256,177 +339,13 @@ function Setup-Hosts(){
     Write-Host "Done setting up hosts file" -ForegroundColor $ProgressColor
 }
 
-function Install-Programs(){
-    [CmdletBinding()]
-    param(
-        [Parameter(Position = 0)]
-        [String] $Configuration = "default",
-
-        [Parameter(Position = 1)]
-        [String[]] $FromURL,
-        [Parameter(Position = 2)]
-        [String[]] $FromChocolatey,
-        [Parameter(Position = 3)]
-        [String[]] $FromWinget
-    )
-    Write-Host "Installing programs" -ForegroundColor $ProgressColor
-
-    foreach($ExeFile in Get-Childitem ".\$Configuration\install\*.exe"){
-        Write-Verbose "Installing $ExeFile from file"
-        Start-Process -FilePath "$ExeFile" -ArgumentList "/S"
-        Write-Verbose "Done installing $ExeFile from file"
-    }
-
-    if(Test-Path ".\$Configuration\install\from-url.txt"){
-        Write-Verbose "Installing from url"
-        foreach($URL in (Get-Content ".\$Configuration\install\from-url.txt" | Where-Object {$_ -notlike ";*"})){
-            Write-Verbose "Installing $URL from url"
-            $Index++
-            (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
-            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" -Wait | Out-Null
-            Remove-Item "$($Env:TEMP)\$Index.exe" -Force -ErrorAction "silentlycontinue"
-            Write-Verbose "Done installing $URL from url"
-        }
-        Write-Verbose "Done installing from url"
-    }
-    else{
-        Write-Verbose "No install from-url file found"
-    }
-
-    if($FromURL){
-        Write-Verbose "Installing from url from parameter"
-        foreach($URL in $FromURL){
-            Write-Verbose "Installing $URL from url"
-            $Index++
-            (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
-            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" -Wait | Out-Null
-            Remove-Item "$($Env:TEMP)\$Index.exe" -Force -ErrorAction "silentlycontinue"
-            Write-Verbose "Done installing $URL from url"
-        }
-        Write-Verbose "Done installing from url from parameter"
-    }
-
-    if(Test-Path ".\$Configuration\install\from-chocolatey.txt"){
-        if(!(Get-Command "choco" -errorAction SilentlyContinue)){
-            Write-Verbose "Installing chocolatey"
-            $ChocolateyJob = Start-Job {
-                Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
-            }
-            if($ChocolateyJob | Wait-Job -Timeout 120){
-                Write-Verbose "Done installing chocolatey"
-            }
-            else{
-                Stop-Job $ChocolateyJob
-                Write-Verbose "Timeout while installing chocolatey, skipping..."
-            }
-        }
-        if(Get-Command "choco" -errorAction SilentlyContinue){
-            choco feature enable -n allowGlobalConfirmation -ErrorAction SilentlyContinue
-            if(Test-Path ".\$Configuration\install\chocolatey-repository.ini"){
-                Write-Verbose "Removing default repository and loading new repositories from file"
-                choco source remove -n=chocolatey
-                $Sources = Get-IniContent -FilePath ".\$Configuration\install\chocolatey-repository.ini" -IgnoreComments
-                foreach($Source in $Sources.Keys){
-                    $Splatter = $Sources[$Source]
-                    choco source add --name $Source @Splatter
-                }
-                Write-Verbose "Done removing default repository and loading new repositories from file"
-            }
-            Write-Verbose "Installing from chocolatey"
-            foreach($Install in (Get-Content ".\$Configuration\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"})){
-                Write-Verbose "Installing $Install from chocolatey"
-                choco install $Install --limit-output --ignore-checksum
-                choco pin add -n="$Install"
-                Write-Verbose "Done installing $Install from chocolatey"
-            }
-            Write-Verbose "Done installing from chocolatey"
-        }
-        else{
-            Write-Verbose "Chocolatey not installed or requires a restart after install, not installing packages"
-        }
-        Write-Verbose "Done installing from chocolatey"
-    }
-    else{
-        Write-Verbose "No install from-chocolatey file found"
-    }
-    if($FromChocolatey -and (Get-Command "choco" -errorAction SilentlyContinue)){
-        Write-Verbose "Installing from chocolatey from parameter"
-        foreach($Install in $FromChocolatey){
-            Write-Verbose "Installing $Install from chocolatey"
-            choco install $Install --limit-output --ignore-checksum
-            choco pin add -n="$Install"
-            Write-Verbose "Done installing $Install from chocolatey"
-        }
-        Write-Verbose "Done installing from chocolatey from parameter"
-    }
-
-    if(Test-Path ".\$Configuration\install\from-winget.txt"){
-        if(!(Get-Command "winget" -errorAction SilentlyContinue)){
-            Write-Verbose "Installing winget"
-            if(Start-Process "ms-appinstaller:?source=https://aka.ms/getwinget" -ErrorAction SilentlyContinue | Wait-Process -Timeout 120 -ErrorAction SilentlyContinue){
-                Write-Verbose "Done installing winget"
-            }
-            else{
-                Write-Verbose "Timout while installing winget, skipping..."
-            }
-        }
-        if(Get-Command "winget" -errorAction SilentlyContinue){
-            Write-Verbose "Installing from winget"
-            foreach($Install in (Get-Content ".\$Configuration\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})){
-                Write-Verbose "Installing $Install from winget"
-                winget install $Install
-                Write-Verbose "Done installing $Install from winget"
-            }
-            Write-Verbose "Done installing from winget"
-        }
-        else{
-            Write-Verbose "Winget not installed, not installing packages"
-        }
-        Write-Verbose "Done installing from winget"
-    }
-    else{
-        Write-Verbose "No install from-winget file found"
-    }
-
-    if($FromWinget -and (Get-Command "winget" -errorAction SilentlyContinue)){
-        Write-Verbose "Installing from winget from parameter"
-        foreach($Install in $FromWinget){
-            Write-Verbose "Installing $Install from winget"
-            winget install $Install
-            Write-Verbose "Done installing $Install from winget"
-        }
-        Write-Verbose "Done installing from winget from parameter"
-    }
-    else{
-        Write-Verbose "No winget modules passed"
-    }
-
-    Write-Host "Done installing programs" -ForegroundColor $ProgressColor
-}
-
 function Remove-Bloatware(){
     [CmdletBinding()]
     param(
-        [Parameter(Position = 0)]
-        [String] $Configuration = "default",
-
         [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
         [String[]] $Bloatware
     )
     Write-Host "Removing bloatware" -ForegroundColor $ProgressColor
-
-    if(Test-Path ".\$Configuration\install\remove-bloatware.txt"){
-        Write-Verbose "Removing bloatware"
-        foreach($AppxPackage in (Get-Content ".\$Configuration\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";*"})){
-            Write-Verbose "Removing $AppxPackage"
-            Get-AppxPackage $AppxPackage | Remove-AppxPackage
-            Write-Verbose "Done removing $AppxPackage"
-        }
-        Write-Verbose "Done removing bloatware"
-    }
-    else{
-        Write-Verbose "No remove-bloatware file found"
-    }
 
     if($Bloatware){
         Write-Verbose "Removing bloatware from parameter"
@@ -441,147 +360,166 @@ function Remove-Bloatware(){
     Write-Host "Done removing bloatware" -ForegroundColor $ProgressColor
 }
 
-function Setup-Partitions(){
-    [CmdletBinding()]
-    param(
-        [Parameter(Position = 0, ParameterSetName = 'Configuration')]
-        [String] $Configuration = "default",
-
-        [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
-        [Hashtable] $IniContent
-    )
-    Write-Host "Setting up partitions" -ForegroundColor $ProgressColor
-
-    if($PSCmdlet.ParameterSetName -eq "Configuration"){
-        if(Test-Path ".\$Configuration\settings\partitions.ini"){
-            $IniContent = Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments
-        }
-        else{
-            Write-Host "No partitions.ini file found" -ForegroundColor $ProgressColor
-            return
-        }
-    }
-    if($IniContent){
-        if($null -ne $IniContent){
-            #Find all driveletters that are wanted
-            $UnusableDriveLetters = @()
-            foreach($Drive in $IniContent.Keys){
-                foreach($Partition in $IniContent["$Drive"].Keys){
-                    $UnusableDriveLetters += $IniContent["$Drive"]["$Partition"]
-                }
-            }
-            Write-Verbose "Found all wanted driveletters: $UnusableDriveLetters"
-            #Find all drive letters that are currently in use
-            $UnusableDriveLetters += ((Get-PSDrive).Root -match "^[A-Z]:\\").Substring(0, 1)
-            Write-Verbose "Found all wanted and currently used driveletters: $UnusableDriveLetters"
-            #Find all free usable drive letters (Not currently used and not wanted)
-            65..90|foreach-object{
-                if(-not $UnusableDriveLetters.Contains("$([char]$_)")){
-                    $UsableDriveLetters += [char]$_
-                }
-            }
-            $UsableDriveLetterIndex = 0
-            Write-Verbose "Found all freely usable drive letters (Not used  & not wanted): $UsableDriveLetters"
-            #Temporarily assign all partitions to one of those letters
-            foreach($Drive in $IniContent.Keys){
-                foreach($Partition in $IniContent["$Drive"].Keys){
-                    Write-Verbose "Assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
-                    Get-Disk | Where-Object SerialNumber -EQ "$Drive" | Get-Partition | Where-Object PartitionNumber -EQ $Partition | Set-Partition -NewDriveLetter $UsableDriveLetters[$UsableDriveLetterIndex]
-                    Write-Verbose "Done assigning partition $Partition of drive $Drive to temporary letter $($UsableDriveLetters[$UsableDriveLetterIndex])"
-                    $UsableDriveLetterIndex++
-                }
-            }
-            Write-Verbose "All partitions set to temporary driveletters"
-            #Assign all partitions to their wanted letter
-            foreach($Drive in $IniContent.Keys){
-                foreach($Partition in $IniContent["$Drive"].Keys){
-                    Write-Verbose "Assigning partition $Partition of drive $Drive to letter $($IniContent["$Drive"]["$Partition"])"
-                    $DriveObject = Get-Disk | Where-Object SerialNumber -EQ "$Drive"
-                    $PartitionObject = Get-Partition -Disk $DriveObject | Where-Object PartitionNumber -EQ $Partition
-                    Set-Partition -InputObject $PartitionObject -NewDriveLetter $IniContent["$Drive"]["$Partition"]
-                    Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($IniContent["$Drive"]["$Partition"])"
-                }
-            }
-            Write-Host "Done setting up partitions" -ForegroundColor $ProgressColor
-        }
-        else{
-            Write-Host "Ini content is empty" -ForegroundColor $ProgressColor
-        }
-    }
-    else{
-        Write-Host "No partition file found" -ForegroundColor $ProgressColor
-    }
-}
-
-function Setup-Powershell(){
+function Install-Programs(){
     [CmdletBinding()]
     param(
         [Parameter(Position = 0)]
-        [String] $Configuration = "default",
+        [String[]] $FromPath,
 
-        [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
-        [String[]] $Modules
+        [Parameter(Position = 1)]
+        [String[]] $FromURL
     )
-    Write-Host "Setting up Powershell" -ForegroundColor $ProgressColor
-    Update-Help -ErrorAction "silentlyContinue"
+    Write-Host "Installing programs" -ForegroundColor $ProgressColor
 
-    if(Test-Path ".\$Configuration\powershell\packageprovider.txt"){
-        Write-Verbose "Installing packageproviders"
-        foreach($PackageProvider in (Get-Content ".\$Configuration\powershell\packageprovider.txt" | Where-Object {$_ -notlike ";*"})){
-            if(Get-PackageProvider $PackageProvider -ErrorAction "silentlyContinue"){
-                Write-Verbose "PackageProvider $PackageProvider is already installed, skipping..."
-            }
-            else{
-                Write-Verbose "Installing packageprovider $PackageProvider"
-                Install-PackageProvider -Name $PackageProvider -Force -Confirm:$False
-                Write-Verbose "Done installing packageprovider $PackageProvider"
-            }
+    #From path
+    if($FromPath){
+        foreach($ExeFile in $FromPath){
+            Write-Verbose "Installing $ExeFile from file"
+            Start-Process -FilePath "$ExeFile" -ArgumentList "/S"
+            Write-Verbose "Done installing $ExeFile from file"
         }
-        Write-Verbose "Done installing packageproviders"
-    }
-    else{
-        Write-Verbose "No powershell-packageprovider file found"
     }
 
-    if(Test-Path ".\$Configuration\powershell\module.txt"){
-        Write-Verbose "Installing modules from file"
-        foreach($PowershellModule in (Get-Content ".\$Configuration\powershell\module.txt" | Where-Object {$_ -notlike ";*"})){
-            if(Get-InstalledModule $PowershellModule -ErrorAction "silentlyContinue"){
-                Write-Verbose "Module $PowershellModule is already installed, skipping..."
-            }
-            else{
-                Write-Verbose "Installing module $PowershellModule"
-                Install-Module -Name $PowershellModule -Force -Confirm:$False
-                Write-Verbose "Done installing module $PowershellModule"
-            }
+    #From URL
+    if($FromURL){
+        Write-Verbose "Installing from url"
+        foreach($URL in $FromURL){
+            Write-Verbose "Installing $URL from url"
+            $Index++
+            (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
+            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" -Wait | Out-Null
+            Remove-Item "$($Env:TEMP)\$Index.exe" -Force -ErrorAction "silentlycontinue"
+            Write-Verbose "Done installing $URL from url"
         }
-        Write-Verbose "Done installing modules from file"
-    }
-    else{
-        Write-Verbose "No powershell-module file found"
+        Write-Verbose "Done installing from url"
     }
 
-    if($Modules){
-        Write-Verbose "Installing modules from parameter"
-        foreach($PowershellModule in $Modules){
-            if(Get-InstalledModule $PowershellModule -ErrorAction "silentlyContinue"){
-                Write-Verbose "Module $PowershellModule is already installed, skipping..."
-            }
-            else{
-                Write-Verbose "Installing module $PowershellModule"
-                Install-Module -Name $PowershellModule -Force -Confirm:$False
-                Write-Verbose "Done installing module $PowershellModule"
-            }
-        }
-        Write-Verbose "Done installing modules from parameter"
-    }
-    else{
-        Write-Verbose "No powershell modules passed"
-    }
-
-    Write-Host "Done setting up Powershell" -ForegroundColor $ProgressColor
+    Write-Host "Done installing programs" -ForegroundColor $ProgressColor
 }
 
+function Install-Choco(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String[]] $Packages,
+        [Parameter(Position = 1)]
+        [HashTable] $Sources
+    )
+    Write-Host "Installing programs from Chocolatey" -ForegroundColor $ProgressColor
+
+    #Installing Chocolatey
+    if(!(Get-Command "choco" -errorAction SilentlyContinue)){
+        Write-Verbose "Installing chocolatey"
+        $ChocolateyJob = Start-Job {
+            Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
+        }
+        if($ChocolateyJob | Wait-Job -Timeout 120){
+            Write-Verbose "Done installing chocolatey"
+        }
+        else{
+            Stop-Job $ChocolateyJob
+            Write-Verbose "Timeout while installing chocolatey, skipping..."
+        }
+    }
+    if(Get-Command "choco" -errorAction SilentlyContinue){
+        #Setting up Chocolatey repositories
+        choco feature enable -n allowGlobalConfirmation -ErrorAction SilentlyContinue
+        if($Sources){
+            Write-Verbose "Removing default repository and loading new repositories from file"
+            choco source remove -n=chocolatey
+            foreach($Source in $Sources.Keys){
+                $Splatter = $Sources[$Source]
+                choco source add --name $Source @Splatter
+            }
+            Write-Verbose "Done removing default repository and loading new repositories from file"
+        }
+        #Installing from Chocolatey
+        Write-Verbose "Installing from chocolatey"
+        foreach($Install in $Packages){
+            Write-Verbose "Installing $Install from chocolatey"
+            choco install $Install --limit-output --ignore-checksum
+            choco pin add -n="$Install"
+            Write-Verbose "Done installing $Install from chocolatey"
+        }
+        Write-Verbose "Done installing from chocolatey"
+    }
+    else{
+        Write-Verbose "Chocolatey not installed or requires a restart after install, not installing any packages"
+    }
+
+    Write-Host "Done installing programs from Chocolatey" -ForegroundColor $ProgressColor
+}
+
+function Install-Winget(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [String[]] $Packages
+    )
+    Write-Host "Installing from winget" -ForegroundColor $ProgressColor
+
+    if(!(Get-Command "winget" -errorAction SilentlyContinue)){
+        Write-Verbose "Installing winget"
+        if(Start-Process "ms-appinstaller:?source=https://aka.ms/getwinget" -ErrorAction SilentlyContinue | Wait-Process -Timeout 120 -ErrorAction SilentlyContinue){
+            Write-Verbose "Done installing winget"
+        }
+        else{
+            Write-Verbose "Timout while installing winget, skipping..."
+        }
+    }
+    if(Get-Command "winget" -errorAction SilentlyContinue){
+        Write-Verbose "Installing from winget"
+        foreach($Install in $Packages){
+            Write-Verbose "Installing $Install from winget"
+            winget install $Install
+            Write-Verbose "Done installing $Install from winget"
+        }
+        Write-Verbose "Done installing from winget"
+    }
+    else{
+        Write-Verbose "Winget not installed, not installing packages"
+    }
+
+    Write-Host "Done installing from winget" -ForegroundColor $ProgressColor
+}
+
+function Setup-FileAssociations(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
+        [Hashtable] $IniContent
+    )
+    Write-Host "Setting up file associations" -ForegroundColor $ProgressColor
+    foreach($Extension in $IniContent["associations"].Keys){
+        $File = $IniContent["associations"][$Extension]
+        Write-Verbose "Creating association $File for file type $Extension"
+        Register-FTA $File $Extension
+        Write-Verbose "Done creating association $File for file type $Extension"
+    }
+
+    Write-Host "Done setting up file associations" -ForegroundColor $ProgressColor
+}
+
+function Set-OptionalFeatures(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 1, ParameterSetName = "IniContent")]
+        [Hashtable] $IniContent
+    )
+    Write-Host "Setting optional features"
+
+    foreach($Feature in $IniContent["OptionalFeatures"].Keys){
+        Write-Verbose "Feature $Feature with targetstate $($IniContent["OptionalFeatures"][$Feature]) and current state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
+        if($IniContent["OptionalFeatures"][$Feature] -eq "Enable"){
+            Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Disabled"} | Enable-WindowsOptionalFeature -Online -NoRestart
+        }
+        else{
+            Get-WindowsOptionalFeature -FeatureName $Feature -Online | Where-Object {$_.state -eq "Enabled"} | Disable-WindowsOptionalFeature -Online -NoRestart
+        }
+        Write-Verbose "Done with feature $Feature with new state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
+    }
+    Write-Host "Done setting optional features"
+}
 
 
 function Start-Setup(){
@@ -602,7 +540,7 @@ function Start-Setup(){
             }
         }
         Write-Host "Creating Windows Checkpoint" -ForegroundColor $ProgressColor
-        Checkpoint-Computer -Description "Before Start-Setup at $(Get-Date)"
+        Checkpoint-Computer -Description "Before $($MyInvocation.MyCommand) at $(Get-Date)"
         Read-Host "Checkpoint created. Press enter to continue" -ForegroundColor $ProgressColor
 
         Write-Host "Stopping Windows update service" -ForegroundColor $ProgressColor
@@ -610,19 +548,39 @@ function Start-Setup(){
         Read-Host "Windows update service stopped. Press enter to continue" -ForegroundColor $ProgressColor
 
 
-        if(Test-Path ".\prepend_custom.ps1"){
-            & ".\$Configuration\scripts\prepend_custom.ps1"
+        if(Test-Path ".\prepend.ps1"){
+            & ".\$Configuration\scripts\prepend.ps1"
         }
-        Setup-Powershell -Configuration $Configuration
-        Setup-Partitions -Configuration $Configuration
-        Create-Symlinks -Configuration $Configuration
-        Load-Registry -Configuration $Configuration
-        Setup-Hosts -Configuration $Configuration
-        Remove-Bloatware -Configuration $Configuration
-        Install-Programs -Configuration $Configuration
-        Setup-FileAssociations -Configuration $Configuration
-        if(Test-Path ".\append_custom.ps1"){
-            & ".\$Configuration\scripts\append_custom.ps1"
+        Setup-Powershell `
+            -Modules (Get-Content ".\$Configuration\powershell\module.txt") `
+            -PackageProviders (Get-Content ".\$Configuration\powershell\packageprovider.txt")
+        Setup-Partitions `
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments)
+        Create-Symlinks `
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\symlinks.ini" -IgnoreComments)
+        Load-Registry `
+            -RegistryData (Get-IniContent -FilePath ".\$Configuration\settings\registry.reg" -IgnoreComments)
+        Load-Registry `
+            -RegistryData (Get-IniContent -FilePath ".\$Configuration\settings\registry.ini" -IgnoreComments)
+        Setup-Hosts `
+            -Hosts (Get-Content ".\$Configuration\hosts\from-file.txt") `
+            -FromURL (Get-Content -Path ".\$Configuration\hosts\from-url.txt" | Where-Object {$_ -notlike ";*"})
+        Remove-Bloatware `
+            -Bloatware (Get-Content ".\$Configuration\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";*"})
+        Install-Programs `
+            -FromPath (Get-Childitem ".\$Configuration\install\*.exe" -Recurse) `
+            -FromURL (Get-Content ".\$Configuration\install\from-url.txt" | Where-Object {$_ -notlike ";*"})
+        Install-Choco `
+            -Packages (Get-Content ".\$Configuration\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"}) `
+            -Sources (Get-IniContent ".\$Configuration\install\chocolatey-repository.ini" | Where-Object {$_ -notlike ";*"})
+        Install-Winget `
+            -Packages (Get-Content ".\$Configuration\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})
+        Setup-FileAssociations `
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments)
+        Set-OptionalFeatures `
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\optionalfeatures.ini" -IgnoreComments)
+        if(Test-Path ".\append.ps1"){
+            & ".\$Configuration\scripts\append.ps1"
         }
 
 
@@ -641,6 +599,7 @@ function Start-Setup(){
     Stop-Transcript
 }
 
-if($Configuration){
+if($Configuration -and $MyInvocation.InvocationName -ne "."){
+    Write-Host "Invocation: $($MyInvocation.InvocationName)"
     Start-Setup $Configuration -ErrorAction "Stop"
 }

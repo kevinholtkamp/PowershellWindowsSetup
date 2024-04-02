@@ -1,2 +1,4 @@
 Recycle
 PsIni
+PsWinRAR
+PSHelperTools

@@ -8,33 +8,34 @@ Additionally, I try to create the script in a way where you can run it again at 
 
 ## How to use
 - Change the values of the files in the `default`-folder according to your requirements and the specifications defined in the [Configuration files section](#Configuration-files), or delete files you do not need
-- Alternatively, create a new folder in the root directory of the project for every user Configuration you need and create all the files in the same format as in the `default`-folder
-- Open a powershell console in the root directory of the project, load the setup.ps1 file and call the function `Start-Setup` with the Configuration-Parameter set to your user Configuration if you do not use the default Configuration:
+- Alternatively, create a new folder in the root directory of the project for every Configuration you need and create all the files in the same format as in the `default`-folder
+- If you want to use the `default` configuration, you can just right-click the script file and "Run with Powershell", or call the script without parameters
+- If you want to use a different configuration, open a powershell console in the root directory of the project, load the setup.ps1 file with the Configuration-Parameter set to your Configuration
 ```Powershell      
-        . .\setup.ps1
-        Start-Setup -Configuration "default"
+    .\Run-Setup.ps1 -Configuration "default"
 ```
 ## Configuration files
 ### .\hosts\
 - `from-file.txt` plain text file where each line represents one entry in the windows hosts file format
 - `from-url.txt` plain text file where each line represents a url to a file in the windows hosts file format
 ### .\install\
-- `from-chocolatey.txt` plain text file where each line represents the name of a chocolatey package
-- `from-winget.txt` plain text file where each line represents the name of a winget package
-- `from-url.txt` plain text file where each line represents a url to an executable file
-- `powershell-module.txt` plain text file where each line represents the name of a powershell module
-- `powershell-packageprovider.txt` plain text file where each line represents the name of a powershell package-provider
-- `remove-bloatware.txt` plain text file where each line represents the name of an AppxPackage
 - `chocolatey-repository.ini` ini file where every section corresponds to a chocolatey repository with the keys being the parameters used to create the repository via powershell "splatter"
-### .\quickaccess\
-- `folders.txt` plain text file where each line represents the path to a folder
-### .\scheduledTasks\
-- `.\scheduledTasks\` can contain none or any number of .xml files which represent a scheduled task in the [Windows task format](http://schemas.microsoft.com/windows/2004/02/mit/task)
+- `from-chocolatey.txt` plain text file where each line represents the name of a chocolatey package
+- `from-url.txt` plain text file where each line represents a url to an executable file
+- `from-winget.txt` plain text file where each line represents the name of a winget package
+- `remove-bloatware.txt` plain text file where each line represents the name of an AppxPackage
+### .\powershell\
+- `module.txt` plain text file where each line represents the name of a powershell module
+- `packageprovider.txt` plain text file where each line represents the name of a powershell package-provider
 ### .\scripts\
-- `.\scripts\` can contain custom script files prepend_custom.ps1 and append_custom.ps1 which get executed before and after the other functions respectively
+- `append.ps1` script file that gets executed after the main script
+- `prepend.ps1` script file that gets executed before the main script
 ### .\settings\
-- `gpedit.txt` text file containing a Windows registry backup in the Windows group policy backup file format
+- `associations.ini` ini file containing file type associations to be set
 - `partitions.ini` ini file where each key represents the serial number of a disk and every entry contains the target drive letter for a partition index
 - `registry.reg` reg file containing registry keys in the Windows Registry Editor Version 5.00 format
-- `settings.ini` ini file containing the keys optionalFeatures, links and associations for their respective settings
-- `taskbar.xml` xml file containing taskbar settings in the [Windows taskbar layout file format](https://schemas.microsoft.com/Start/2014/TaskbarLayout)
+- `symlinks.ini` ini file containing symlinks to be set
+
+## Create a new configuration
+To create a new configuration you can either create it manually or launch the `Create-Configuration` script. You will be prompted for everything needed in a configuration.
+Afterwards, the configuration will be saved in the correct format in a new folder with the configuration name

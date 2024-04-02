@@ -4,7 +4,13 @@ if(!(Get-InstalledModule "PSHelperTools" -ErrorAction SilentlyContinue -MinimumV
     Import-Module PSHelperTools -RequiredVersion "0.0.5"
 }
 
-
+function Prompt($Prompt){
+    do{
+        Write-Host $Prompt -ForegroundColor Blue -NoNewline
+        $Input = Read-Host
+    } while(-Not $Input)
+    return $Input
+}
 function PromptN($Item){
     $Return = [System.Collections.ArrayList]@()
     Write-Host "Enter any number of $Item, just press enter to exit: " -ForegroundColor Blue -NoNewline
@@ -14,7 +20,7 @@ function PromptN($Item){
         Write-Host "Another one: " -ForegroundColor Blue -NoNewline
         $Input = Read-Host
     }
-    $Return
+    return $Return
 }
 function PromptYesNo($Prompt){
     Write-Host "$Prompt (yes/no): " -ForegroundColor Blue -NoNewline
@@ -35,8 +41,7 @@ function PromptYesNo($Prompt){
 
 #Configuration name
 do{
-    Write-Host "Enter configuration name: " -ForegroundColor Blue -NoNewline
-    $ConfigurationName = Read-Host
+    $ConfigurationName = Prompt "Enter configuration name: "
     if(Test-Path ".\$ConfigurationName"){
         Write-Host "Configuration exists already, please enter a different name" -ForegroundColor Red
     }
@@ -51,7 +56,7 @@ do{
         $Hosts["FromFile"] = Get-Content "$($Env:WinDir)\system32\Drivers\etc\hosts" | ForEach-Object {$_.Split("#")[0].Trim()} | Where-Object {!$_.Equals("")}
     }
     #Manual entries for use in from file
-    $Hosts["FromFile"].Add((PromptN "host file entries (Format: <IP> <Domain>)"))
+    $Hosts["FromFile"] += (PromptN "host file entries (Format: <IP> <Domain>)")
     #from url
     $Hosts["FromURL"] = PromptN "URLs with host file entries"
 
@@ -62,23 +67,23 @@ do{
     #from url
     $Install["FromURL"] = PromptN "URLs for installation"
     #choco
-    if(PromptYesNo "Do you want to read all installed chocolatey packages?"){
-        if(Get-Command "choco" -ErrorAction SilentlyContinue){
+    if(Get-Command "choco" -ErrorAction SilentlyContinue){
+        if(PromptYesNo "Do you want to read all installed chocolatey packages?"){
             Write-Host "Reading installed choco packages from current installation" -ForegroundColor Green
             $Install["FromChocolatey"] = (choco list -localonly --limitoutput | ForEach-Object {$_.Split("|")[0]})
         }
     }
     #winget
-    if(PromptYesNo "Do you want to read all installed winget packages?"){
-        if(Get-Command "winget" -ErrorAction SilentlyContinue){
+    if(Get-Command "winget" -ErrorAction SilentlyContinue){
+        if(PromptYesNo "Do you want to read all installed winget packages?"){
             Write-Host "Reading installed winget packages from current installation" -ForegroundColor Green
             & winget export ".\from-winget.json" | Out-Null
-            $Install["FromWinget"] = Get-Content ".\from-winget.json"
+            $Install["FromWinget"] = Get-Content ".\from-winget.json" | Where-Object {$_ -like '*PackageIdentifier*'} | ForEach-Object {$_.Split(":")[1].Replace('"','').Trim()}
             Remove-Item ".\from-winget.json"
         }
     }
     #Remove bloatware
-    $Install["RemoveBloatware"] = PromptN "bloatwares (wildcards permitted)"
+    $Install["RemoveBloatware"] = PromptN "bloatwares to remove (wildcards permitted)"
 
 #powershell
     $Powershell = @{}
@@ -103,19 +108,23 @@ do{
     $Settings["FileAssociations"] = PromptN "file associations (format: .csv=C:\windows\system32\notepad.exe)"
     #partitions
     if(PromptYesNo "Do you want to read the partition letters from the current installation?"){
-    Write-Host "Reading partition letters from current installation" -ForegroundColor Green
-    $Settings["Partitions"] = [System.Collections.ArrayList]@()
-    Get-Disk | `
-        ForEach-Object {`
-            $Settings["Partitions"].Add("[$($_.SerialNumber)]") | Out-Null; `
-            Get-Partition $_.Number | `
-                ForEach-Object {`
-                    if($_.DriveLetter -and $_.DriveLetter -ne "C"){$Settings["Partitions"].Add("$($_.PartitionNumber)=$($_.DriveLetter)") | Out-Null}}}
+        Write-Host "Reading partition letters from current installation" -ForegroundColor Green
+        $Settings["Partitions"] = [System.Collections.ArrayList]@()
+        Get-Disk | `
+            ForEach-Object {`
+                $Settings["Partitions"].Add("[$($_.SerialNumber)]") | Out-Null; `
+                Get-Partition $_.Number | `
+                    ForEach-Object {`
+                        if($_.DriveLetter -and $_.DriveLetter -ne "C"){
+                            $Settings["Partitions"].Add("$($_.PartitionNumber)=$($_.DriveLetter)") | Out-Null
+                        }
+                    }
+            }
     }
     #registry
-    #symlinks
+    #symlinks ToDo angucken
     if(PromptYesNo "Do you want to read symlinks from current installation?"){
-        $FoldersToSearch = PromptN "folders to search for symlinks"
+        $FoldersToSearch = PromptN "folders to search for symlinks (Enter none for defaults)"
         if(!$FoldersToSearch){
             $FoldersToSearch = @("$env:USERPROFILE\AppData", "D:\", "E:\", "C:\Users\Public\Documents\")
         }
@@ -125,8 +134,7 @@ do{
         foreach($Folder in $FoldersToSearch){
             $LLinks = Get-ChildItem $Folder -Recurse -ErrorAction SilentlyContinue | `
             Where-Object {Get-SymlinkTarget $_.FullName} | `
-                ForEach-Object `
-                    -Begin {
+            ForEach-Object -Begin {
                 $Out = @{}
             } -Process {
                 $Out.Add($_.FullName, (Get-SymlinkTarget $_.FullName)) | Out-Null
@@ -144,7 +152,7 @@ do{
             foreach($Link in $Links.Keys){
                 $Value = $Links[$Link]
                 if($Value.StartsWith($Letter)){
-                    $Temp.Add("$($Value.ToString().Substring($Letter.Length + 2))=$Link") | Out-Null
+                    $Temp.Add("$($Value.ToString() -Split '\',2)=$Link") | Out-Null
                 }
             }
             $Temp | Sort-Object | ForEach-Object {
