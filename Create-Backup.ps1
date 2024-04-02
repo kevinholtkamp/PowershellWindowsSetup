@@ -5,14 +5,28 @@
     }
 }
 
-$Answer = PromptYesNo "Do you want to manually enter files to backup?"
-if($Answer){
+if(PromptYesNo "Do you want to manually enter files to backup?"){
     $Files = Read-ArrayInput "Files, directories or wildcards"
 }
 else{
-    Write-Host "Enter the configuration name: " -ForegroundColor Green -NoNewline
-    $Configuration = Read-Host
-    $Files = Get-Content "./$Configuration/backup.txt" | Where-Object {$_ -notlike ";*"}
+    if(PromptYesNo "Do you want to use recommended settings instead of a configuration?"){
+        $Files = @(
+            "C:\Users\$($Env:UserName)\AppData\Roaming",
+            "C:\Users\$($Env:UserName)\Desktop",
+            "C:\Users\$($Env:UserName)\Documents",
+            "C:\Users\$($Env:UserName)\Music",
+            "C:\Users\$($Env:UserName)\Pictures",
+            "C:\Users\$($Env:UserName)\Videos",
+            "C:\Program Files (x86)",
+            "C:\Program Files",
+            "C:\ProgramData"
+        )
+    }
+    else{
+        Write-Host "Enter the configuration name: " -ForegroundColor Green -NoNewline
+        $Configuration = Read-Host
+        $Files = Get-Content "./$Configuration/backup.txt" | Where-Object {$_ -notlike ";*"}
+    }
 }
 
 $Files | Compress-WinRAR `
