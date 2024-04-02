@@ -1,26 +1,13 @@
+function PromptYesNo($Prompt){
+    return 0 -eq ($Host.UI.PromptForChoice($Prompt, "", @("Yes", "No"), 1))
+}
+
 "PSWinRAR", "PSHelperTools" | ForEach-Object {
     if(!(Get-InstalledModule $_ -ErrorAction SilentlyContinue)){
         Install-Module $_ -Force -ErrorAction Stop
         Import-Module $_ -Force -ErrorAction Stop
     }
 }
-
-
-function PromptYesNo($Prompt){
-    Write-Host "$Prompt (yes/no): " -ForegroundColor Blue -NoNewline
-    while($true){
-        $Answer = Read-Host
-        $Answer = $Answer.ToLower()
-        if($Answer -eq "yes" -or $Answer -eq "y"){
-            return $true
-        }
-        elseif ($Answer -eq "no" -or $Answer -eq "n"){
-            return $false
-        }
-        Write-Host "Please enter a valid answer: " -ForegroundColor Red -NoNewline
-    }
-}
-
 
 $Answer = PromptYesNo "Do you want to manually enter files to backup?"
 if($Answer){
