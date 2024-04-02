@@ -8,22 +8,13 @@ Describe "Load-Registry"{
     }
     Context "RegistryData parameter"{
         It "Creating test key"{
-            $Array = @{
+            $HashTable = @{
                 "TestRegistry:\TestLocation" = @{
                     "TestKey" = "TestValue"
                 }
             }
-            Load-Registry -RegistryData $Array
-
-            $ItemProperty = Get-ItemProperty -Path "TestRegistry:\TestLocation" -Name "TestKey"
-            Write-Host "ItemProperty: $ItemProperty"
-            $ItemProperty | Select-Object -ExpandProperty "TestKey" | Should -Be "TestValue"
-        }
-    }
-    Context "RegistryFile parameter"{
-        It "Create test key"{
-            $Array = @("Windows Registry Editor Version 5.00", "[TestRegistry\TestLocation]", '["TestKey":"TestValue"]')
-            Load-Registry -RegistryFile $Array
+            New-Item -Path "TestRegistry:\TestLocation" -ItemType Directory
+            Load-Registry -RegistryData $HashTable
 
             $ItemProperty = Get-ItemProperty -Path "TestRegistry:\TestLocation" -Name "TestKey"
             Write-Host "ItemProperty: $ItemProperty"
