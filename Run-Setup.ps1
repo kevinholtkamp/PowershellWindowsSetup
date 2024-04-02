@@ -6,45 +6,6 @@ param(
     [String] $ProgressColor = "Green"
 )
 
-function Setup-Network(){
-    [CmdletBinding()]
-    param(
-    [Parameter(Position = 0, ParameterSetName = 'Configuration')]
-    [String] $Configuration = "default",
-
-    [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
-    [Hashtable] $Interfaces,
-
-    [Parameter(Position = 1, ParameterSetName = 'IniContent')]
-    [Hashtable] $DNSServers
-    )
-
-    if($PSCmdlet.ParameterSetName -eq "Configuration" -and Test-Path ".\$Configuration\network\interfaces.ini"){
-        $Interfaces = Get-IniContent -FilePath ".\$Configuration\network\interfaces.ini" -IgnoreComments
-    }
-    else{
-        Write-Host "Cannot find interfaces file"
-    }
-    foreach($InterfaceAlias in $Interfaces.Keys){
-        $Interface = $Interfaces[$InterfaceAlias]
-        Remove-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily $Interface["AddressFamily"]
-        if($Interface["DefaultGateway"]){
-            Remove-NetRoute -InterfaceAlias $InterfaceAlias
-        }
-        New-NetIPAddress -InterfaceAlias $InterfaceAlias @Interface
-    }
-
-    if($PSCmdlet.ParameterSetName -eq "Configuration" -and Test-Path ".\$Configuration\network\dns.ini"){
-        $DNSServers = Get-IniContent -FilePath ".\$Configuration\network\dns.ini" -IgnoreComments
-    }
-    else{
-        Write-Host "Cannot find dns file"
-    }
-    foreach($InterfaceAlias in $DNSServers.Keys){
-        Set-DnsClientServerAddress -InterfaceAlias $InterfaceAlias -ServerAddresses @($DNSServers[$InterfaceAlias]["Primary"], $DNSServers[$InterfaceAlias]["Secondary"])
-    }
-}
-
 function Setup-Powershell(){
     [CmdletBinding()]
     param(
@@ -90,6 +51,30 @@ function Setup-Powershell(){
     }
 
     Write-Host "Done setting up Powershell" -ForegroundColor $ProgressColor
+}
+
+function Setup-Network(){
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0, ParameterSetName = 'IniContent', ValueFromPipeline = $true)]
+        [Hashtable] $Interfaces,
+
+        [Parameter(Position = 1, ParameterSetName = 'IniContent')]
+        [Hashtable] $DNSServers
+    )
+
+    foreach($InterfaceAlias in $Interfaces.Keys){
+        $Interface = $Interfaces[$InterfaceAlias]
+        Remove-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily $Interface["AddressFamily"]
+        if($Interface["DefaultGateway"]){
+            Remove-NetRoute -InterfaceAlias $InterfaceAlias
+        }
+        New-NetIPAddress -InterfaceAlias $InterfaceAlias @Interface
+    }
+
+    foreach($InterfaceAlias in $DNSServers.Keys){
+        Set-DnsClientServerAddress -InterfaceAlias $InterfaceAlias -ServerAddresses @($DNSServers[$InterfaceAlias]["Primary"], $DNSServers[$InterfaceAlias]["Secondary"])
+    }
 }
 
 function Setup-Partitions(){
@@ -554,6 +539,9 @@ function Start-Setup(){
         Setup-Powershell `
             -Modules (Get-Content ".\$Configuration\powershell\module.txt") `
             -PackageProviders (Get-Content ".\$Configuration\powershell\packageprovider.txt")
+        Setup-Network `
+            -Interfaces (Get-IniContent ".\$Configuration\settings\interfaces.ini") `
+            -DNSServers (Get-IniContent ".\$Configuration\settings\network.ini")
         Setup-Partitions `
             -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments)
         Create-Symlinks `

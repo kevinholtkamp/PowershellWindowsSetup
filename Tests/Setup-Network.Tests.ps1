@@ -4,8 +4,6 @@ BeforeAll {
 
 Describe "Setup-Network"{
     BeforeAll{
-        New-Item "$TestConfiguration\network" -ItemType Directory
-
         Mock Remove-NetIPAddress {
             Write-Information "------"
             Write-Information "Remove-NetIPAddress:"
@@ -37,9 +35,6 @@ Describe "Setup-Network"{
             Write-Information "------"
         }
     }
-    AfterAll{
-        Remove-Item "$TestConfiguration\network" -Recurse -Force
-    }
     Context "All Parameters"{
         It "General function" -ForEach @(
             @{
@@ -69,10 +64,7 @@ Describe "Setup-Network"{
                 }
             }
         ){
-            Out-IniFile -FilePath "$TestConfiguration\network\interfaces.ini" -InputObject $Interfaces
-            Out-IniFile -FilePath "$TestConfiguration\network\dns.ini" -InputObject $DNS
-
-            Setup-Network -Configuration $TestConfiguration -Verbose
+            Setup-Network -Interfaces $Interfaces -DNSServers $DNS
 
             #Remove-NetIPAddress
             #Remove-NetRoute
