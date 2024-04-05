@@ -3,6 +3,15 @@ BeforeAll {
 }
 
 Describe "Install-Programs"{
+    It "Empty parameter"{
+        Mock Start-Process {}
+        Mock Remove-Item {}
+
+        Install-Programs -FromPath @() -FromURL @()
+
+        Should -Invoke -CommandName Start-Process -Exactly -Times 0
+        Should -Invoke -CommandName Remove-Item -Exactly -Times 0
+    }
     Context "Install from exe"{
         BeforeAll{
             New-Item "$TestConfiguration\install\" -ItemType Directory -Force

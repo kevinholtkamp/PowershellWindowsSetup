@@ -3,6 +3,19 @@ BeforeAll {
 }
 
 Describe "Setup-Network"{
+    It "Empty parameter"{
+        Mock Remove-NetIPAddress {}
+        Mock Remove-NetRoute {}
+        Mock New-NetIPAddress {}
+        Mock Set-DnsClientServerAddress {}
+
+        Setup-Network -Interfaces @{} -DNSServers @{}
+
+        Should -Invoke -CommandName Remove-NetIPAddress -Exactly -Times 0
+        Should -Invoke -CommandName Remove-NetRoute -Exactly -Times 0
+        Should -Invoke -CommandName New-NetIPAddress -Exactly -Times 0
+        Should -Invoke -CommandName Set-DnsClientServerAddress -Exactly -Times 0
+    }
     BeforeAll{
         Mock Remove-NetIPAddress {
             Write-Information "------"

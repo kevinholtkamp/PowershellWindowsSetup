@@ -3,6 +3,13 @@ BeforeAll {
 }
 
 Describe "Setup-Partitions"{
+    It "Empty parameter"{
+        Mock Set-Partition {}
+
+        Setup-Partitions -IniContent @{}
+
+        Should -Invoke -CommandName Set-Partition -Exactly -Times 0
+    }
     BeforeAll{
         New-Item "$TestConfiguration\settings" -ItemType Directory -Force -ErrorAction SilentlyContinue
     }
@@ -65,5 +72,8 @@ Describe "Setup-Partitions"{
                 $Index = $Index + 1
             }
         }
+    }
+    Context "Should-fail test"{
+
     }
 }

@@ -3,13 +3,16 @@ BeforeAll {
 }
 
 Describe "Create-Symlinks"{
-    BeforeAll{
-        New-Item "$TestConfiguration\settings" -ItemType Directory -Force -ErrorAction SilentlyContinue
-    }
-    AfterAll{
-        Remove-Item "$TestConfiguration\settings" -Force -Recurse -ErrorAction SilentlyContinue
+    It "Empty parameter"{
+        Mock New-Item {}
+        Mock Copy-Item {}
+        Mock Remove-ItemSafely {}
 
-        Remove-Item "$TestConfiguration\settings\symlinks.ini" -Force -ErrorAction SilentlyContinue
+        Create-Symlinks -IniContent @{}
+
+        Should -Invoke -CommandName New-Item -Exactly -Times 0
+        Should -Invoke -CommandName Copy-Item -Exactly -Times 0
+        Should -Invoke -CommandName Remove-ItemSafely -Exactly -Times 0
     }
     Context "Normal cases"{
         BeforeAll{
@@ -24,10 +27,10 @@ Describe "Create-Symlinks"{
 
             Create-Symlinks -IniContent @{
                 "TestDrive:\Links" = @{
-                    "Existing\Existing" =   "TestDrive:\Original\Existing\Existing"
-                    "Existing\New"      =   "TestDrive:\Original\Existing\New"
-                    "New\Existing"      =   "TestDrive:\Original\New\Existing"
-                    "New\New"           =   "TestDrive:\Original\New\New"
+                    "Existing\Existing" = "TestDrive:\Original\Existing\Existing"
+                    "Existing\New" = "TestDrive:\Original\Existing\New"
+                    "New\Existing" = "TestDrive:\Original\New\Existing"
+                    "New\New" = "TestDrive:\Original\New\New"
                 }
             } -ErrorAction "silentlycontinue"
         }

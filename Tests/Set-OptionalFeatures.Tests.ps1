@@ -3,6 +3,15 @@ BeforeAll {
 }
 
 Describe "Set-OptionalFeatures"{
+    It "Empty parameter"{
+        Mock Enable-WindowsOptionalFeature {}
+        Mock Disable-WindowsOptionalFeature {}
+
+        Set-OptionalFeatures -IniContent @{}
+
+        Should -Invoke -CommandName Enable-WindowsOptionalFeature -Exactly -Times 0
+        Should -Invoke -CommandName Disable-WindowsOptionalFeature -Exactly -Times 0
+    }
     Context "Set-OptionalFeatures"{
         BeforeAll{
             Mock Enable-WindowsOptionalFeature{}

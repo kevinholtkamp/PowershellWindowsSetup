@@ -3,6 +3,13 @@ BeforeAll {
 }
 
 Describe "Remove-Bloatware"{
+    It "Empty parameter"{
+        Mock Remove-AppxPackage {}
+
+        Remove-Bloatware -Bloatware @()
+
+        Should -Invoke -CommandName Remove-AppxPackage -Exactly -Times 0
+    }
     Context "Test with bloatware"{
         BeforeAll{
             Mock Get-AppxPackage {

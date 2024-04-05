@@ -3,6 +3,17 @@ BeforeAll {
 }
 
 Describe "Setup-Powershell"{
+    It "Empty parameter"{
+        Mock Update-Help {}
+        Mock Install-PackageProvider {}
+        Mock Install-Module {}
+
+        Setup-Powershell -Modules @() -PackageProviders @()
+
+        Should -Invoke -CommandName Update-Help -Exactly -Times 1
+        Should -Invoke -CommandName Install-PackageProvider -Exactly -Times 0
+        Should -Invoke -CommandName Install-Module -Exactly -Times 0
+    }
     BeforeAll{
         New-Item "$TestConfiguration\powershell" -ItemType Directory -Force -ErrorAction SilentlyContinue
     }

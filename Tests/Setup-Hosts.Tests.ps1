@@ -3,6 +3,13 @@ BeforeAll {
 }
 
 Describe "Setup-Hosts"{
+    It "Empty parameter"{
+        Mock Add-Content {}
+
+        Setup-Hosts -Hosts @() -FromURL @()
+
+        Should -Invoke -CommandName Add-Content -Exactly -Times 0
+    }
     BeforeAll{
         New-Item "$TestConfiguration\hosts" -ItemType Directory -Force -ErrorAction SilentlyContinue
     }
