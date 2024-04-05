@@ -533,7 +533,7 @@ function Start-Setup(){
         Read-Host "Windows update service stopped. Press enter to continue" -ForegroundColor $ProgressColor
 
 
-        if(Test-Path ".\prepend.ps1"){
+        if(Test-Path ".\$Configuration\scripts\prepend.ps1"){
             & ".\$Configuration\scripts\prepend.ps1"
         }
         Setup-Powershell `
@@ -567,7 +567,7 @@ function Start-Setup(){
             -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments)
         Set-OptionalFeatures `
             -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\optionalfeatures.ini" -IgnoreComments)
-        if(Test-Path ".\append.ps1"){
+        if(Test-Path ".\$Configuration\scripts\append.ps1"){
             & ".\$Configuration\scripts\append.ps1"
         }
 
