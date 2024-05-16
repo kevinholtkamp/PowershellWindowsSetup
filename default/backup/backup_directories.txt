@@ -4,6 +4,3 @@ C:\Users\Kevin\Documents
 C:\Users\Kevin\Music
 C:\Users\Kevin\Pictures
 C:\Users\Kevin\Videos
-C:\Program Files (x86)
-C:\Program Files
-C:\ProgramDat
