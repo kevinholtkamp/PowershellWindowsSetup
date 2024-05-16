@@ -22,7 +22,7 @@ switch ($Compression.ToLowercase()){
             Import-Module "PSWinRAR" -Force -ErrorAction Stop
         }
         $Files | Compress-WinRAR `
-        -Archive "$(Get-Location)\$Configuration\Backup.zip" `
+        -Archive "$(Get-Location)\$Configuration\Backup.rar" `
         -ArchiveFileStructure "Full" `
         -Preset "High" `
         -ErrorAction "Continue" `
