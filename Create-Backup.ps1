@@ -6,16 +6,15 @@ param(
 
 $config = Get-IniContent ".\$Configuration\backup\backup.ini"
 
-$Compression
-$Files = Get-Content ".\$Configuration\backup\backup_files.txt" | Where-Object {$_ -notlike ";*"}
+$Files = Get-Content ".\$Configuration\backup\backup_directories.txt" | Where-Object {$_ -notlike ";*"}
 
-if($config["winget"] -eq "true"){
+if($config["settings"]["winget"] -eq "true"){
     winget list | Add-Content ".\$Configuration\install\from-winget.txt"
 }
-if($config["choco"] -eq "true"){
+if($config["settings"]["choco"] -eq "true"){
     choco list --localonly | Add-Content ".\$Configuration\install\from-winget.txt"
 }
-switch ($Compression.ToLowercase()){
+switch ($config["settings"]["archiver"].ToLowercase()){
     "winrar" {
         if(!(Get-InstalledModule "PSWinRAR" -SilentlyContinue)){
             Install-Module "PSWinRAR" -Force -ErrorAction Stop
