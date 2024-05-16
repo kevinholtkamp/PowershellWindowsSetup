@@ -37,7 +37,7 @@ Describe "Remove-Bloatware"{
             {Remove-Bloatware -Bloatware @("", "awdawdad")} | Should -Throw
         }
         It "-Bloatware Parameter"{
-            Remove-Bloatware -Configuration "" -Bloatware "Candy Crush"
+            Remove-Bloatware -Bloatware "Candy Crush"
 
             Should -Invoke Remove-AppxPackage -Times 1 -ParameterFilter {"Candy Crush"}
         }
