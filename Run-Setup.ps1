@@ -408,7 +408,7 @@ function Install-Choco(){
     }
     if(Get-Command "choco" -errorAction SilentlyContinue){
         #Setting up Chocolatey repositories
-        choco feature enable -n allowGlobalConfirmation -ErrorAction SilentlyContinue
+        choco feature enable -n allowGlobalConfirmation
         if($Sources){
             Write-Verbose "Removing default repository and loading new repositories from file"
             choco source remove -n=chocolatey
@@ -422,7 +422,7 @@ function Install-Choco(){
         Write-Verbose "Installing from chocolatey"
         foreach($Install in $Packages){
             Write-Verbose "Installing $Install from chocolatey"
-            choco install $Install --limit-output --ignore-checksum
+            choco install $Install --limit-output #--ignore-checksum
             choco pin add -n="$Install"
             Write-Verbose "Done installing $Install from chocolatey"
         }
