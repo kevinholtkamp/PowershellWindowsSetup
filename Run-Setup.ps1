@@ -16,7 +16,9 @@ function Setup-Powershell(){
         [String[]] $PackageProviders
     )
     Write-Host "Setting up Powershell" -ForegroundColor $ProgressColor
+
     Update-Help -ErrorAction "silentlyContinue"
+
     if($PackageProviders){
         Write-Verbose "Installing packageproviders from parameter"
         foreach($PackageProvider in $PackageProviders){
@@ -62,19 +64,25 @@ function Setup-Network(){
         [Parameter(Position = 1, ParameterSetName = 'IniContent')]
         [Hashtable] $DNSServers
     )
+    Write-Host "Setting up network" -ForegroundColor $ProgressColor
 
     foreach($InterfaceAlias in $Interfaces.Keys){
+        Write-Verbose "Setting up interface $InterfaceAlias"
         $Interface = $Interfaces[$InterfaceAlias]
         Remove-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily $Interface["AddressFamily"]
         if($Interface["DefaultGateway"]){
             Remove-NetRoute -InterfaceAlias $InterfaceAlias
         }
         New-NetIPAddress -InterfaceAlias $InterfaceAlias @Interface
+
     }
 
     foreach($InterfaceAlias in $DNSServers.Keys){
+        Write-Verbose "Setting up DNS for interface $InterfaceAlias"
         Set-DnsClientServerAddress -InterfaceAlias $InterfaceAlias -ServerAddresses @($DNSServers[$InterfaceAlias]["Primary"], $DNSServers[$InterfaceAlias]["Secondary"])
     }
+
+    Write-Host "Done setting up network" -ForegroundColor $ProgressColor
 }
 
 function Setup-Partitions(){
@@ -84,6 +92,7 @@ function Setup-Partitions(){
         [Hashtable] $IniContent
     )
     Write-Host "Setting up partitions" -ForegroundColor $ProgressColor
+
     if($IniContent){
         if($null -ne $IniContent){
             #Find all driveletters that are wanted
@@ -125,7 +134,6 @@ function Setup-Partitions(){
                     Write-Verbose "Done assigning partition $Partition of drive $Drive to letter $($IniContent["$Drive"]["$Partition"])"
                 }
             }
-            Write-Host "Done setting up partitions" -ForegroundColor $ProgressColor
         }
         else{
             Write-Host "Ini content is empty" -ForegroundColor $ProgressColor
@@ -134,6 +142,8 @@ function Setup-Partitions(){
     else{
         Write-Host "No partition file found" -ForegroundColor $ProgressColor
     }
+
+    Write-Host "Done setting up partitions" -ForegroundColor $ProgressColor
 }
 
 function Create-Symlinks(){
@@ -242,6 +252,8 @@ function Load-Registry(){
         [Parameter(Position = 1)]
         [HashTable] $RegistryData
     )
+    Write-Host "Loading registry" -ForegroundColor $ProgressColor
+
     if($RegistryData){
         Write-Verbose "Parameter RegistryData"
         New-PSDrive -Name HKU -PsProvider Registry HKEY_USERS | out-null
@@ -288,6 +300,8 @@ function Load-Registry(){
             }
         }
     }
+
+    Write-Host "Done loading registry" -ForegroundColor $ProgressColor
 }
 
 function Setup-Hosts(){
@@ -475,6 +489,7 @@ function Setup-FileAssociations(){
         [Hashtable] $IniContent
     )
     Write-Host "Setting up file associations" -ForegroundColor $ProgressColor
+
     foreach($Extension in $IniContent["associations"].Keys){
         $File = $IniContent["associations"][$Extension]
         Write-Verbose "Creating association $File for file type $Extension"
@@ -503,6 +518,7 @@ function Set-OptionalFeatures(){
         }
         Write-Verbose "Done with feature $Feature with new state $((Get-WindowsOptionalFeature -FeatureName $Feature -Online).State)"
     }
+
     Write-Host "Done setting optional features"
 }
 
