@@ -529,14 +529,14 @@ function Start-Setup(){
         [Parameter(Position = 0)]
         [String] $Configuration = "default"
     )
-    Start-Transcript "$Home\Desktop\$(Get-Date -Format "yyyy_MM_dd")_setup.transcript"
+    Start-Transcript "$Home\Desktop\$(Get-Date -Format "yyyy_MM_dd_HH_mm")_setup.transcript"
 
     if(Test-Path ".\$Configuration\"){
         #Requirements
         "PsIni", "Recycle", "PSHelperTools" | ForEach-Object {
             if(!(Get-InstalledModule $_ -ErrorAction "SilentlyContinue")){
                 Write-Verbose "Installing required module $_"
-                Install-Module $_ -Force -ErrorAction "Stop"
+                Install-Module $_ -Force -ErrorAction "Stop" -Confirm
                 Import-Module $_ -Force -ErrorAction "Stop"
             }
         }
