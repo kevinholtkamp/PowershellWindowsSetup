@@ -556,8 +556,8 @@ function Start-Setup(){
             -Modules (Get-Content ".\$Configuration\powershell\module.txt") `
             -PackageProviders (Get-Content ".\$Configuration\powershell\packageprovider.txt")
         Setup-Network `
-            -Interfaces (Get-IniContent ".\$Configuration\settings\interfaces.ini") `
-            -DNSServers (Get-IniContent ".\$Configuration\settings\network.ini")
+            -Interfaces (Get-IniContent ".\$Configuration\settings\interfaces.ini" -IgnoreComments) `
+            -DNSServers (Get-IniContent ".\$Configuration\settings\network.ini" -IgnoreComments)
         Setup-Partitions `
             -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments)
         Create-Symlinks `
@@ -576,7 +576,7 @@ function Start-Setup(){
             -FromURL (Get-Content ".\$Configuration\install\from-url.txt" | Where-Object {$_ -notlike ";*"})
         Install-Choco `
             -Packages (Get-Content ".\$Configuration\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"}) `
-            -Sources (Get-IniContent ".\$Configuration\install\chocolatey-repository.ini" | Where-Object {$_ -notlike ";*"})
+            -Sources (Get-IniContent ".\$Configuration\install\chocolatey-repository.ini" -IgnoreComments)
         Install-Winget `
             -Packages (Get-Content ".\$Configuration\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})
         Setup-FileAssociations `
