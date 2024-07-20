@@ -549,43 +549,61 @@ function Start-Setup(){
         Read-Host "Windows update service stopped. Press enter to continue" -ForegroundColor $ProgressColor
 
 
+        Write-Host "----------------------------"
         if(Test-Path ".\$Configuration\scripts\prepend.ps1"){
+            Write-Verbose "Executing prepend script"
             & ".\$Configuration\scripts\prepend.ps1"
         }
+        Write-Host "----------------------------"
         Setup-Powershell `
-            -Modules (Get-Content ".\$Configuration\powershell\module.txt") `
-            -PackageProviders (Get-Content ".\$Configuration\powershell\packageprovider.txt")
+            -Modules (Get-Content ".\$Configuration\powershell\module.txt" -ErrorAction "silentlycontinue") `
+            -PackageProviders (Get-Content ".\$Configuration\powershell\packageprovider.txt"  -ErrorAction "silentlycontinue")
+        Write-Host "----------------------------"
         Setup-Network `
-            -Interfaces (Get-IniContent ".\$Configuration\settings\interfaces.ini" -IgnoreComments) `
-            -DNSServers (Get-IniContent ".\$Configuration\settings\network.ini" -IgnoreComments)
+            -Interfaces (Get-IniContent ".\$Configuration\settings\interfaces.ini" -IgnoreComments -ErrorAction "silentlycontinue") `
+            -DNSServers (Get-IniContent ".\$Configuration\settings\network.ini" -IgnoreComments -ErrorAction "silentlycontinue")
+        Write-Host "----------------------------"
         Setup-Partitions `
-            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments)
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\partitions.ini" -IgnoreComments -ErrorAction "silentlycontinue")
+        Write-Host "----------------------------"
         Create-Symlinks `
-            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\symlinks.ini" -IgnoreComments)
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\symlinks.ini" -IgnoreComments -ErrorAction "silentlycontinue")
+        Write-Host "----------------------------"
         Load-Registry `
-            -RegistryData (Get-IniContent -FilePath ".\$Configuration\settings\registry.reg" -IgnoreComments)
+            -RegistryData (Get-IniContent -FilePath ".\$Configuration\settings\registry.reg" -IgnoreComments -ErrorAction "silentlycontinue")
+        Write-Host "----------------------------"
         Load-Registry `
-            -RegistryData (Get-IniContent -FilePath ".\$Configuration\settings\registry.ini" -IgnoreComments)
+            -RegistryData (Get-IniContent -FilePath ".\$Configuration\settings\registry.ini" -IgnoreComments -ErrorAction "silentlycontinue")
+        Write-Host "----------------------------"
         Setup-Hosts `
-            -Hosts (Get-Content ".\$Configuration\hosts\from-file.txt") `
-            -FromURL (Get-Content -Path ".\$Configuration\hosts\from-url.txt" | Where-Object {$_ -notlike ";*"})
+            -Hosts (Get-Content ".\$Configuration\hosts\from-file.txt" -ErrorAction "silentlycontinue") `
+            -FromURL (Get-Content -Path ".\$Configuration\hosts\from-url.txt" -ErrorAction "silentlycontinue" | Where-Object {$_ -notlike ";*"})
+        Write-Host "----------------------------"
         Remove-Bloatware `
-            -Bloatware (Get-Content ".\$Configuration\install\remove-bloatware.txt" | Where-Object {$_ -notlike ";*"})
+            -Bloatware (Get-Content ".\$Configuration\install\remove-bloatware.txt" -ErrorAction "silentlycontinue" | Where-Object {$_ -notlike ";*"})
+        Write-Host "----------------------------"
         Install-Programs `
-            -FromPath (Get-Childitem ".\$Configuration\install\*.exe" -Recurse) `
-            -FromURL (Get-Content ".\$Configuration\install\from-url.txt" | Where-Object {$_ -notlike ";*"})
+            -FromPath (Get-Childitem ".\$Configuration\install\*.exe" -Recurse -ErrorAction "silentlycontinue") `
+            -FromURL (Get-Content ".\$Configuration\install\from-url.txt" -ErrorAction "silentlycontinue" | Where-Object {$_ -notlike ";*"})
+        Write-Host "----------------------------"
         Install-Choco `
-            -Packages (Get-Content ".\$Configuration\install\from-chocolatey.txt" | Where-Object {$_ -notlike ";*"}) `
-            -Sources (Get-IniContent ".\$Configuration\install\chocolatey-repository.ini" -IgnoreComments)
+            -Packages (Get-Content ".\$Configuration\install\from-chocolatey.txt" -ErrorAction "silentlycontinue" | Where-Object {$_ -notlike ";*"}) `
+            -Sources (Get-IniContent ".\$Configuration\install\chocolatey-repository.ini" -IgnoreComments -ErrorAction "silentlycontinue")
+        Write-Host "----------------------------"
         Install-Winget `
-            -Packages (Get-Content ".\$Configuration\install\from-winget.txt" | Where-Object {$_ -notlike ";*"})
+            -Packages (Get-Content ".\$Configuration\install\from-winget.txt" -ErrorAction "silentlycontinue" | Where-Object {$_ -notlike ";*"})
+        Write-Host "----------------------------"
         Setup-FileAssociations `
-            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments)
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\associations.ini" -IgnoreComments -ErrorAction "silentlycontinue")
+        Write-Host "----------------------------"
         Set-OptionalFeatures `
-            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\optionalfeatures.ini" -IgnoreComments)
+            -IniContent (Get-IniContent -FilePath ".\$Configuration\settings\optionalfeatures.ini" -IgnoreComments -ErrorAction "silentlycontinue")
+        Write-Host "----------------------------"
         if(Test-Path ".\$Configuration\scripts\append.ps1"){
+            Write-Verbose "Executing append script"
             & ".\$Configuration\scripts\append.ps1"
         }
+        Write-Host "----------------------------"
 
 
         Write-Host "Creating Windows Checkpoint" -ForegroundColor $ProgressColor
