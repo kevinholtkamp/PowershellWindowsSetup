@@ -385,9 +385,14 @@ function Install-Programs(){
         foreach($URL in $FromURL){
             Write-Verbose "Installing $URL from url"
             $Index++
-            (New-Object System.Net.WebClient).DownloadFile($URL, "$($Env:TEMP)\$Index.exe")
-            Start-Process -FilePath "$($Env:TEMP)\$Index.exe" -ArgumentList "/S" -Wait | Out-Null
-            Remove-Item "$($Env:TEMP)\$Index.exe" -Force -ErrorAction "silentlycontinue"
+            $filename = if($URL -match '.msi'){
+                "$($Env:TEMP)\$Index.msi"
+            } else {
+                "$($Env:TEMP)\$Index.exe"
+            }
+            (New-Object System.Net.WebClient).DownloadFile($URL, $filename)
+            Start-Process -FilePath $filename -ArgumentList "/S" -Wait | Out-Null
+            Remove-Item $filename -Force -ErrorAction "silentlycontinue"
             Write-Verbose "Done installing $URL from url"
         }
         Write-Verbose "Done installing from url"
