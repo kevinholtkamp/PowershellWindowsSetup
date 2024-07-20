@@ -196,7 +196,7 @@ function Create-Symlinks(){
                                 else{
                                     Write-Verbose "Exists in LinkPath"
                                 }
-                                if(Compare-Paths -First $SourceFolder -Second "$BaseTargetFolder\$TargetFolder"){
+                                if(!(Compare-Paths -First $SourceFolder -Second "$BaseTargetFolder\$TargetFolder")){
                                     Write-Verbose "Symlink exists, but has a wrong target"
                                     Write-Verbose "Target: $BaseTargetFolder\$TargetFolder"
                                     Write-Verbose "Wanted Target: $(Get-SymlinkTarget $SourceFolder)"
